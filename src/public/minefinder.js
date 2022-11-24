@@ -1,36 +1,59 @@
 const app = new PIXI.Application();
 document.body.appendChild(app.view);
-
-
 const Graphics = PIXI.Graphics;
-const squareSize = 15;
+const cellSize = 15;
 
-function renderMinefield(app, width, height, squareSize){
-    let border = 5;
-    let boardWidth = width * squareSize;
-    let boardHeight = height * squareSize;
-    app.renderer.resize(boardWidth + border*2, boardHeight + border*2);
-    for (let i = border; i < boardWidth; i += squareSize){
-        for (let j = border; j < boardHeight; j += squareSize){
-            let square = new Graphics();
-            square.beginFill(0x4433AA)
-                .lineStyle(1, 0x111111, 0.35)
-                .drawRect(i, j, squareSize, squareSize)
-                .endFill();
-            app.stage.addChild(square);
-        }
-    }
+function createCell(app, xCoord, yCoord, cellSize){
+    let cell = new Graphics();
+    cell.beginFill(0x4433AA)
+        .lineStyle(1, 0x111111, 0.35)
+        .drawRect(xCoord, yCoord, cellSize, cellSize)
+        .endFill();
+    app.stage.addChild(cell);
+
+    cell.interactive = true;
+    cell.on('mouseenter', function() {
+        cell.tint = 0x880808;
+    })
+    cell.on('mouseleave', function() {
+        cell.tint = 0xFFFFFF;
+    })
+    return cell
 }
 
+function generateMinefield(app, width, height, cellSize){
+    let minefield = new Map;
+    let border = 5;
+    let boardWidth = width * cellSize;
+    let boardHeight = height * cellSize;
+    app.renderer.resize(boardWidth + border*2, boardHeight + border*2);
+    for (let x = border; x < boardWidth; x += cellSize){
+        for (let y = border; y < boardHeight; y += cellSize){
+            minefield.set(x + "|" +  y, createCell(app, x, y, cellSize));
+        }
+    }
+    return minefield;
+}
+
+let minefield;
 // TODO: Allow user to select mode.
 let mode = "expert";
 if (mode == "beginner"){
-    renderMinefield(app, 9, 9, squareSize);
+    minefield = generateMinefield(app, 9, 9, cellSize);
 } else if (mode == "intermediate") {
-    renderMinefield(app, 16, 16, squareSize);
+    minefield = generateMinefield(app, 16, 16, cellSize);
 } else if (mode == "expert"){
-    renderMinefield(app, 30, 16, squareSize);
+    minefield = generateMinefield(app, 30, 16, cellSize);
 }
+
+// Example of how to override tint for a particular cell
+minefield.get("5|5").on('mouseenter', function() {
+    this.tint = 0x00FF00;
+});
+minefield.get("5|20").tint = 0xAAAAAA;
+minefield.get("20|20").tint = 0xAAAAAA;
+
+
 
 /*
 // Begin Tutorial Code
