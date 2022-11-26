@@ -9,20 +9,33 @@ class Cell {
         this.app = app;
         this.color = 0x4433AA;
         this.cellSize = cellSize;
-        this.square;
+        this.square = new Graphics();
         this.value = "E"; // E for EMPTY
         this.xCoord = xCoord;
         this.yCoord = yCoord;
+
+        let textStyle = new PIXI.TextStyle({
+            fontFamily: "Georgia",
+            fontSize: 10
+        });
+        this.cellText = new PIXI.Text("", textStyle);
+        // TODO: Figure out text alignment and scaling.
+        this.cellText.anchor.set(-1,0);
+
         this.drawCell();
+        this.app.stage.addChild(this.square);
+        this.square.addChild(this.cellText);
     }
 
     drawCell(){
-        let square = new Graphics();
+        let square = this.square;
+        square.clear();
+        square.x = this.xCoord;
+        square.y = this.yCoord;
         square.beginFill(this.color)
             .lineStyle(1, 0x111111, 0.35)
-            .drawRect(this.xCoord, this.yCoord, this.cellSize, this.cellSize)
+            .drawRect(0, 0, this.cellSize, this.cellSize)
             .endFill();
-        this.app.stage.addChild(square);
     
         square.interactive = true;
         square.on('mouseenter', function() {
@@ -32,6 +45,15 @@ class Cell {
             square.tint = 0xFFFFFF;
         })
         this.square = square;
+    }
+
+    updateCell(color, text){
+        this.color = color;
+        this.drawCell();
+        if (text.length !== 0 && text != "B" && text != "M" && text != "E"){
+            this.cellText.text = text;
+        }
+
     }
 }
 
@@ -119,8 +141,7 @@ class Minefield {
         for (const cellKey of cellKeys){
             let cell = this.board.get(cellKey);
             if (cell.value == "M") {
-                cell.color = 0xEE4B2B;
-                cell.drawCell();
+                cell.updateCell(0xEE4B2B, cell.value);
             }
         }
     }
@@ -193,15 +214,13 @@ class Minefield {
                     // Only travel to cells that aren't out of bounds
                     if ((0 <= i) && (i < this.width) && 
                         (0 <= j) && (j < this.height)){
-                        cell.color = 0xE6E6FA;
-                        cell.drawCell();
+                        cell.updateCell(0xE6E6FA, cell.value);
                         traversalHelper(this.getCellKeyString(i, j));
                     }
                 }
             } else {
                 cell.value = adjacentMines.toString();
-                cell.color = 0xFFFF00;
-                cell.drawCell();
+                cell.updateCell(0xFFFF00, cell.value);
             }
         }
 
