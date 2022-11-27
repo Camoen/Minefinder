@@ -117,23 +117,6 @@ class Minefield {
         this.createBoard(this.boardWidth, this.boardHeight, this.cellSize, this.border);
     }
 
-    endGame(win){
-        this.revealMines();
-        if (win === true){
-            alert("You won!");
-        }
-    }
-
-    getCellKeyString(xCoord, yCoord){
-        return xCoord + "|" +  yCoord;
-    }
-
-    getCellKey(xCoord, yCoord){
-        let x = Math.floor((xCoord - this.border) / this.cellSize);
-        let y = Math.floor((yCoord - this.border) / this.cellSize);
-        return this.getCellKeyString(x, y);
-    }
-
     /**
      * Initializes the game board (this.board), which maps coordinates to Cell objects:
      * this.board = {'0|0': Cell(), '15|15': Cell(), ...} 
@@ -150,6 +133,23 @@ class Minefield {
                 this.board.set(this.getCellKey(x, y), new Cell(this.app, x, y, cellSize));
             }
         }   
+    }
+
+    endGame(win){
+        this.revealMines();
+        if (win === true){
+            alert("You won!");
+        }
+    }
+
+    getCellKeyString(xCoord, yCoord){
+        return xCoord + "|" +  yCoord;
+    }
+
+    getCellKey(xCoord, yCoord){
+        let x = Math.floor((xCoord - this.border) / this.cellSize);
+        let y = Math.floor((yCoord - this.border) / this.cellSize);
+        return this.getCellKeyString(x, y);
     }
 
     /**
@@ -181,20 +181,6 @@ class Minefield {
                 }
             }
         }
-    }
-
-    /**
-     * When a player clicks a mine, reveal all remaining cells.
-     */
-    revealMines(){
-        let cellKeys = Array.from(this.board.keys());
-        for (const cellKey of cellKeys){
-            let cell = this.board.get(cellKey);
-            if (cell.value == "M") {
-                cell.updateCell("X");
-            }
-        }
-        this.gameOver = true;
     }
 
     /**
@@ -276,6 +262,20 @@ class Minefield {
         }
 
         traversalHelper(this.getCellKey(xCoord, yCoord));
+    }
+
+    /**
+     * When a player clicks a mine, reveal all remaining cells.
+     */
+    revealMines(){
+        let cellKeys = Array.from(this.board.keys());
+        for (const cellKey of cellKeys){
+            let cell = this.board.get(cellKey);
+            if (cell.value == "M") {
+                cell.updateCell("X");
+            }
+        }
+        this.gameOver = true;
     }
 }
 
