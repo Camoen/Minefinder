@@ -14,11 +14,11 @@ class Cell {
         this.xCoord = xCoord;
         this.yCoord = yCoord;
 
-        let textStyle = new PIXI.TextStyle({
+        this.textStyle = new PIXI.TextStyle({
             fontFamily: "Georgia",
             fontSize: 10
         });
-        this.cellText = new PIXI.Text("", textStyle);
+        this.cellText = new PIXI.Text("", this.textStyle);
         // TODO: Figure out text alignment and scaling.
         this.cellText.anchor.set(-1,0);
 
@@ -47,13 +47,55 @@ class Cell {
         this.square = square;
     }
 
-    updateCell(color, text){
-        this.color = color;
-        this.drawCell();
-        if (text.length !== 0 && text != "B" && text != "M" && text != "E"){
-            this.cellText.text = text;
+    /**
+     * Takes in a cell's new value, then updates the cell's value and display properties
+     * (cell color, text visibility, and text color).
+     * 
+     * @param {String} value 
+     */
+    updateCell(value){
+        this.value = value;
+        if (value.length !== 0 && value != "B" && value != "X"){
+            this.cellText.text = value;
         }
 
+        switch(this.value){
+            case "X":
+                this.color = 0xEE4B2B;
+                break;
+            default:
+                // Default case also updates the color of revealed cells with no adjacent mines
+                this.color = 0xE6E6FA;
+                switch(this.value){
+                    case "1":
+                        this.textStyle.fill = 0x0000ff;
+                        break;
+                    case "2":
+                        this.textStyle.fill = 0x007b00;
+                        break;
+                    case "3":
+                        this.textStyle.fill = 0xfe0000;
+                        break;
+                    case "4":
+                        this.textStyle.fill = 0x09097e;
+                        break;
+                    case "5":
+                        this.textStyle.fill = 0x7b0000;
+                        break;
+                    case "6":
+                        this.textStyle.fill = 0x2a9494;
+                        break;
+                    case "7":
+                        this.textStyle.fill = 0x000000;
+                        break;
+                    case "8":
+                        this.textStyle.fill = 0x808080;
+                        break; 
+                }
+                break; 
+        }
+
+        this.drawCell();
     }
 }
 
@@ -64,6 +106,7 @@ class Minefield {
         this.board = new Map;
         this.border = border;
         this.cellSize = cellSize;
+        this.cellsRemaining = width * height - mines;
         this.gameOver = false;
         this.height = height;
         this.mines = mines;
@@ -72,6 +115,13 @@ class Minefield {
         this.boardHeight = height * cellSize;
         this.width = width;
         this.createBoard(this.boardWidth, this.boardHeight, this.cellSize, this.border);
+    }
+
+    endGame(win){
+        this.revealMines();
+        if (win === true){
+            alert("You won!");
+        }
     }
 
     getCellKeyString(xCoord, yCoord){
@@ -99,7 +149,7 @@ class Minefield {
             for (let y = border; y < boardHeight; y += cellSize){
                 this.board.set(this.getCellKey(x, y), new Cell(this.app, x, y, cellSize));
             }
-        }
+        }   
     }
 
     /**
@@ -141,9 +191,10 @@ class Minefield {
         for (const cellKey of cellKeys){
             let cell = this.board.get(cellKey);
             if (cell.value == "M") {
-                cell.updateCell(0xEE4B2B, cell.value);
+                cell.updateCell("X");
             }
         }
+        this.gameOver = true;
     }
 
     /**
@@ -170,9 +221,7 @@ class Minefield {
 
         // If the cell is a mine, return quickly
         if (cell.value == "M"){
-            this.revealMines();
-            cell.value = "X";
-            this.gameOver = true;
+            this.endGame(false);
             return;
         }
 
@@ -207,20 +256,22 @@ class Minefield {
             console.log("adjMines: ", adjacentMines);
             // Set the revealed cell's new value
             if (adjacentMines == 0){
-                cell.value = "B";
+                cell.updateCell("B");
                 for (const direction of directions){
                     let i = direction[0] + xCoord;
                     let j = direction[1] + yCoord;
                     // Only travel to cells that aren't out of bounds
                     if ((0 <= i) && (i < this.width) && 
                         (0 <= j) && (j < this.height)){
-                        cell.updateCell(0xE6E6FA, cell.value);
                         traversalHelper(this.getCellKeyString(i, j));
                     }
                 }
             } else {
-                cell.value = adjacentMines.toString();
-                cell.updateCell(0xFFFF00, cell.value);
+                cell.updateCell(adjacentMines.toString());
+            }
+            this.cellsRemaining -= 1;
+            if (this.cellsRemaining == 0){
+                this.endGame(true);
             }
         }
 
@@ -230,16 +281,13 @@ class Minefield {
 
 let minefield;
 // TODO: Allow user to select mode.
-let mode = "expert";
+let mode = "beginner";
 if (mode == "beginner"){
     minefield = new Minefield(app, 9, 9, 10, cellSize, 5);
-    // minefield = generateMinefield(app, 9, 9, cellSize);
 } else if (mode == "intermediate") {
     minefield = new Minefield(app, 16, 16, 40, cellSize, 5);
-    // minefield = generateMinefield(app, 16, 16, cellSize);
 } else if (mode == "expert"){
     minefield = new Minefield(app, 30, 16, 99, cellSize, 5);
-    // minefield = generateMinefield(app, 30, 16, cellSize);
 }
 
 // Example of how to override tint for a particular cell
