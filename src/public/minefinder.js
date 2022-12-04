@@ -8,7 +8,10 @@ class Cell {
     constructor(app, xCoord, yCoord, cellSize){
         this.app = app;
         this.color = 0x4433AA;
+        this.defaultColor = 0x4433AA;
         this.cellSize = cellSize;
+        this.flagged = false;
+        this.revealed = false;
         this.square = new Graphics();
         this.value = "E"; // E for EMPTY
         this.xCoord = xCoord;
@@ -48,6 +51,20 @@ class Cell {
     }
 
     /**
+     * Toggles a cell's 'flagged' status and updates its display properties.
+     */
+     toggleFlag(){
+        if (this.flagged) {
+            this.color = this.defaultColor;
+            this.flagged = false;
+        } else {
+            this.color = 0xFFFF00;
+            this.flagged = true;
+        }
+        this.drawCell();
+    }
+
+    /**
      * Takes in a cell's new value, then updates the cell's value and display properties
      * (cell color, text visibility, and text color).
      * 
@@ -55,7 +72,9 @@ class Cell {
      */
     updateCell(value){
         this.value = value;
-        if (value.length !== 0 && value != "B" && value != "X"){
+        this.revealed = true;
+        // Only display cell text if a cell has adjacent mines (cell value is numeric)
+        if (value.length !== 0 && "12345678".includes(value)){
             this.cellText.text = value;
         }
 
@@ -107,6 +126,7 @@ class Minefield {
         this.border = border;
         this.cellSize = cellSize;
         this.cellsRemaining = width * height - mines;
+        this.flaggedCells = 0;
         this.gameOver = false;
         this.height = height;
         this.mines = mines;
@@ -138,7 +158,34 @@ class Minefield {
     endGame(win){
         this.revealMines();
         if (win === true){
-            alert("You won!");
+            alert("You won! :D");
+        } else{
+            alert("You lost! D:");
+        }
+    }
+
+    /**
+     * Flag a cell as potentially having a mine. A flagged cell cannot be revealed 
+     * until it is unflagged.
+     * 
+     * @param {Number} xCoord 
+     * @param {Number} yCoord 
+     * @returns 
+     */
+    flagCell(xCoord, yCoord){
+        if (this.gameOver){
+            return;
+        }        
+        let cell = this.board.get(this.getCellKey(xCoord, yCoord));
+        if (cell.revealed){
+            return;
+        }
+        cell.toggleFlag();
+        // TODO: Use (this.mines - this.flaggedCells) to show potential remaining mines
+        if (cell.flagged){
+            this.flaggedCells += 1;
+        } else {
+            this.flaggedCells -= 1;
         }
     }
 
@@ -194,14 +241,16 @@ class Minefield {
         if (this.gameOver){
             return;
         }
+        // Could refactor to generate mines when board is created. Then, if first click 
+        // happens to be a mine, move the mine to some arbitrary empty cell (if available)
         if (!this.minesPlaced){
             this.placeMines(xCoord, yCoord);
             this.minesPlaced = true;
         }
         let cell = this.board.get(this.getCellKey(xCoord, yCoord));
 
-        // If the cell is already revealed, do nothing
-        if (!(cell.value == "E" || cell.value == "M")) {
+        // If the cell is flagged or already revealed, do nothing
+        if (cell.flagged || !(cell.value == "E" || cell.value == "M")) {
             return;
         }
 
@@ -223,8 +272,8 @@ class Minefield {
             let yCoord = Number(coords[1]);
             console.log(cellKey, coords, xCoord, yCoord);
             let cell = this.board.get(cellKey);
-            // Check that the cell hasn't already been revealed
-            if (cell.value != "E"){
+            // Check that the cell isn't flagged or already revealed
+            if (cell.flagged || cell.value != "E"){
                 return;
             }
             // Calculate number of adjacent mines
@@ -295,9 +344,15 @@ minefield.board.get(minefield.getCellKey(5, 5)).square.on('mouseenter', function
     this.tint = 0x00FF00;
 });
 
-// On click, reveal cells on game board
-app.stage.on('pointerup', function(mouseData) {
+// On left click, reveal cells on game board
+app.stage.on('mouseup', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
     minefield.revealCells(mouseData.data.global.x, mouseData.data.global.y);
 });
 
+// On right click, flag a cell
+// TODO: Prevent context menu on right click
+app.stage.on('rightdown', function(mouseData) {
+    console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
+    minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
+});
