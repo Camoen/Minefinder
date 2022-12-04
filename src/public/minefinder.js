@@ -5,8 +5,8 @@ const cellSize = 15;
 
 
 class Cell {
-    constructor(app, xCoord, yCoord, cellSize){
-        this.app = app;
+    constructor(container, xCoord, yCoord, cellSize){
+        this.container = container;
         this.color = 0x4433AA;
         this.defaultColor = 0x4433AA;
         this.cellSize = cellSize;
@@ -26,7 +26,7 @@ class Cell {
         this.cellText.anchor.set(-1,0);
 
         this.drawCell();
-        this.app.stage.addChild(this.square);
+        this.container.addChild(this.square);
         this.square.addChild(this.cellText);
     }
 
@@ -134,7 +134,13 @@ class Minefield {
         this.boardWidth = width * cellSize;
         this.boardHeight = height * cellSize;
         this.width = width;
-        this.createBoard(this.boardWidth, this.boardHeight, this.cellSize, this.border);
+        
+        this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + border*2);
+        // TODO: create a header for time, game options, time remaining. [this.createHeader()]        
+        this.boardContainer = this.createBoard(this.width, this.height, this.cellSize, this.border);
+        this.boardContainer.x = border;
+        this.boardContainer.y = border;
+        app.stage.addChild(this.boardContainer);
     }
 
     /**
@@ -144,15 +150,16 @@ class Minefield {
      * @param {Number} boardWidth   Number of cells along x-axis of game board
      * @param {Number} boardHeight  Number of cells along y-axis of game board
      * @param {Number} cellSize     Height and Width of one cell
-     * @param {Number} border       Offset to provide a border around the game board
      */
-    createBoard(boardWidth, boardHeight, cellSize, border) {
-        this.app.renderer.resize(boardWidth + border*2, boardHeight + border*2);
-        for (let x = border; x < boardWidth; x += cellSize){
-            for (let y = border; y < boardHeight; y += cellSize){
-                this.board.set(this.getCellKey(x, y), new Cell(this.app, x, y, cellSize));
+    createBoard(width, height, cellSize) {
+        let boardContainer = new PIXI.Container();
+        for (let x = 0; x < width; x += 1){
+            for (let y = 0; y < height; y += 1){
+                this.board.set(this.getCellKeyString(x, y), 
+                               new Cell(boardContainer, x * cellSize, y * cellSize, cellSize));
             }
-        }   
+        }
+        return boardContainer;
     }
 
     endGame(win){
@@ -194,8 +201,8 @@ class Minefield {
     }
 
     getCellKey(xCoord, yCoord){
-        let x = Math.floor((xCoord - this.border) / this.cellSize);
-        let y = Math.floor((yCoord - this.border) / this.cellSize);
+        let x = Math.floor((xCoord - this.boardContainer.x) / this.cellSize);
+        let y = Math.floor((yCoord - this.boardContainer.y) / this.cellSize);
         return this.getCellKeyString(x, y);
     }
 
@@ -331,16 +338,17 @@ class Minefield {
 let minefield;
 // TODO: Allow user to select mode.
 let mode = "beginner";
+let border = 5;
 if (mode == "beginner"){
-    minefield = new Minefield(app, 9, 9, 10, cellSize, 5);
+    minefield = new Minefield(app, 9, 9, 10, cellSize, border);
 } else if (mode == "intermediate") {
-    minefield = new Minefield(app, 16, 16, 40, cellSize, 5);
+    minefield = new Minefield(app, 16, 16, 40, cellSize, border);
 } else if (mode == "expert"){
-    minefield = new Minefield(app, 30, 16, 99, cellSize, 5);
+    minefield = new Minefield(app, 30, 16, 99, cellSize, border);
 }
 
 // Example of how to override tint for a particular cell
-minefield.board.get(minefield.getCellKey(5, 5)).square.on('mouseenter', function() {
+minefield.board.get(minefield.getCellKey(border + cellSize - 1, border + cellSize - 1)).square.on('mouseenter', function() {
     this.tint = 0x00FF00;
 });
 
