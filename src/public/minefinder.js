@@ -129,7 +129,7 @@ class Minefield {
         this.flaggedCells = 0;
         this.gameOver = false;
         this.height = height;
-        this.mines = mines;
+        this.mines = Math.min(mines, width * height);
         this.minesPlaced = false;
         this.boardWidth = width * cellSize;
         this.boardHeight = height * cellSize;
@@ -213,7 +213,7 @@ class Minefield {
         // Handle edge case where all cells are mines
         if (this.mines == cellKeys.length){
             for (const cellKey of cellKeys){
-                this.board.get(cellKey).value == "M";
+                this.board.get(cellKey).value = "M";
             }
         } else {
             let safePosition = this.getCellKey(xCoord, yCoord);
@@ -320,7 +320,7 @@ class Minefield {
         let cellKeys = Array.from(this.board.keys());
         for (const cellKey of cellKeys){
             let cell = this.board.get(cellKey);
-            if (cell.value == "M") {
+            if (cell.value == "M" && !cell.flagged) {
                 cell.updateCell("X");
             }
         }
@@ -351,8 +351,13 @@ app.stage.on('mouseup', function(mouseData) {
 });
 
 // On right click, flag a cell
-// TODO: Prevent context menu on right click
 app.stage.on('rightdown', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
     minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
 });
+
+// Prevent context menu on right click
+app.view.addEventListener('contextmenu', (e) => {
+    console.log("contextmenu", e)
+    e.preventDefault();
+  })
