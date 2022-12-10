@@ -119,6 +119,55 @@ class Cell {
 }
 
 
+class MineTracker {
+    constructor(container, xCoord, width, height){
+        this.container = container;
+        this.display = new Graphics();
+        this.display.x = xCoord;
+        this.display.y = 0;
+        this.display.beginFill(0x222222)
+            .lineStyle(1, 0x111111, 0.35)
+            .drawRect(0, 0, width, height)
+            .endFill();
+
+        this.textStyle = new PIXI.TextStyle({
+            fontFamily: "Courier New",
+            fontSize: 25,
+            fill: 0xFF0000
+        });
+
+
+        this.displayText = new PIXI.Text("000", this.textStyle);
+        // TODO: Figure out a cleaner approach to text alignment and scaling.
+        this.displayText.anchor.x = 0.5;
+        this.displayText.anchor.y = 0.5;
+        this.displayText.x = this.display.width/2;
+        this.displayText.y = this.display.height/2;
+        
+        this.container.addChild(this.display);
+        this.display.addChild(this.displayText);
+    }
+
+    updateRemainingMines(mines){
+        this.displayText.text = mines;
+    }
+}
+
+class Header {
+    constructor(border, width, height){
+        this.headerContainer = new PIXI.Container();
+        this.headerContainer.x = border;
+        this.headerContainer.y = border;
+        this.newGameButtonWidth = width / 7;
+        this.trackerWidth = width / 7 * 3;
+        // TODO: this.timer = new Graphics();
+        // TODO: this.newGameButton = new Graphics();
+        this.mineTracker = new MineTracker(this.headerContainer, 
+                                           this.trackerWidth + this.newGameButtonWidth,
+                                           this.trackerWidth, height);
+    }
+}
+
 class Minefield {
     constructor(app, width, height, mines, cellSize, border){
         this.app = app;
@@ -133,13 +182,17 @@ class Minefield {
         this.minesPlaced = false;
         this.boardWidth = width * cellSize;
         this.boardHeight = height * cellSize;
+        this.headerHeight = cellSize * 2;
         this.width = width;
         
-        this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + border*2);
-        // TODO: create a header for time, game options, time remaining. [this.createHeader()]        
+        this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + this.headerHeight + border*3);
+        this.header = new Header(this.border, this.boardWidth, this.headerHeight);
+        this.header.headerContainer.x = border;
+        this.header.headerContainer.y = border;
+        app.stage.addChild(this.header.headerContainer);
         this.boardContainer = this.createBoard(this.width, this.height, this.cellSize, this.border);
         this.boardContainer.x = border;
-        this.boardContainer.y = border;
+        this.boardContainer.y = border + this.headerHeight + border;
         app.stage.addChild(this.boardContainer);
     }
 
@@ -194,6 +247,7 @@ class Minefield {
         } else {
             this.flaggedCells -= 1;
         }
+        this.header.mineTracker.updateRemainingMines(this.mines - this.flaggedCells);
     }
 
     getCellKeyString(xCoord, yCoord){
@@ -235,6 +289,7 @@ class Minefield {
                 }
             }
         }
+        this.header.mineTracker.updateRemainingMines(placedMines);
     }
 
     /**
@@ -348,9 +403,9 @@ if (mode == "beginner"){
 }
 
 // Example of how to override tint for a particular cell
-minefield.board.get(minefield.getCellKey(border + cellSize - 1, border + cellSize - 1)).square.on('mouseenter', function() {
-    this.tint = 0x00FF00;
-});
+// minefield.board.get(minefield.getCellKey(border + cellSize - 1, border + cellSize - 1)).square.on('mouseenter', function() {
+//     this.tint = 0x00FF00;
+// });
 
 // On left click, reveal cells on game board
 app.stage.on('mouseup', function(mouseData) {
