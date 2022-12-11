@@ -1,7 +1,7 @@
 const app = new PIXI.Application();
 document.body.appendChild(app.view);
 const Graphics = PIXI.Graphics;
-const cellSize = 15;
+const cellSize = 40;
 
 
 class Cell {
@@ -16,16 +16,17 @@ class Cell {
         this.value = "E"; // E for EMPTY
         this.xCoord = xCoord;
         this.yCoord = yCoord;
+        this.drawCell();
 
         this.textStyle = new PIXI.TextStyle({
-            fontFamily: "Georgia",
-            fontSize: 10
+            fontFamily: "Courier New",
+            fontSize: this.cellSize / 2
         });
         this.cellText = new PIXI.Text("", this.textStyle);
-        // TODO: Figure out text alignment and scaling.
-        this.cellText.anchor.set(-1,0);
+        this.cellText.anchor.set(0.5, 0.5);
+        this.cellText.x = this.square.width/2;
+        this.cellText.y = this.square.height/2;
 
-        this.drawCell();
         this.container.addChild(this.square);
         this.square.addChild(this.cellText);
     }
@@ -132,15 +133,13 @@ class MineTracker {
 
         this.textStyle = new PIXI.TextStyle({
             fontFamily: "Courier New",
-            fontSize: 25,
+            fontSize: height * 0.75,
             fill: 0xFF0000
         });
 
 
         this.displayText = new PIXI.Text("000", this.textStyle);
-        // TODO: Figure out a cleaner approach to text alignment and scaling.
-        this.displayText.anchor.x = 0.5;
-        this.displayText.anchor.y = 0.5;
+        this.displayText.anchor.set(0.5, 0.5);
         this.displayText.x = this.display.width/2;
         this.displayText.y = this.display.height/2;
         
@@ -218,6 +217,7 @@ class Minefield {
     endGame(win){
         this.revealMines();
         if (win === true){
+            this.header.mineTracker.updateRemainingMines(0);
             alert("You won! :D");
         } else{
             alert("You lost! D:");
