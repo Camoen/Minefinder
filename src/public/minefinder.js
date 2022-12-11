@@ -136,8 +136,6 @@ class MineTracker {
             fontSize: height * 0.75,
             fill: 0xFF0000
         });
-
-
         this.displayText = new PIXI.Text("000", this.textStyle);
         this.displayText.anchor.set(0.5, 0.5);
         this.displayText.x = this.display.width/2;
@@ -160,25 +158,53 @@ class Header {
         this.newGameButtonWidth = width / 7;
         this.trackerWidth = width / 7 * 3;
         // TODO: this.timer = new Graphics();
-        // TODO: this.newGameButton = new Graphics();
         this.mineTracker = new MineTracker(this.headerContainer, 
                                            this.trackerWidth + this.newGameButtonWidth,
                                            this.trackerWidth, height);
+
+        this.createNewGameButton(height);
+    }
+
+    createNewGameButton(height){
+        this.newGameButton = new Graphics();
+        this.newGameButton.x = this.trackerWidth;
+        this.newGameButton.y = 0;
+        this.newGameButton.beginFill(0x222222)
+            .lineStyle(1, 0x111111, 0.35)
+            .drawRect(0, 0, this.newGameButtonWidth, height)
+            .endFill();
+
+        this.newGameButtonTextStyle = new PIXI.TextStyle({
+            align: "center",
+            fontFamily: "Courier New",
+            fontSize: this.newGameButtonWidth * 0.35,
+            fill: 0xFF0000
+        });
+        this.newGameButtonText = new PIXI.Text("New\nGame", this.newGameButtonTextStyle);
+        this.newGameButtonText.anchor.set(0.5, 0.5);
+        this.newGameButtonText.x = this.newGameButton.width/2;
+        this.newGameButtonText.y = this.newGameButton.height/2;
+
+        this.newGameButton.interactive = true;
+        this.newGameButton.on('mouseenter', function() {
+            this.tint = 0x90EE90;
+        })
+        this.newGameButton.on('mouseleave', function() {
+            this.tint = 0xFFFFFF;
+        })
+
+        this.headerContainer.addChild(this.newGameButton);
+        this.newGameButton.addChild(this.newGameButtonText);
     }
 }
 
 class Minefield {
     constructor(app, width, height, mines, cellSize, border){
         this.app = app;
-        this.board = new Map;
         this.border = border;
         this.cellSize = cellSize;
-        this.cellsRemaining = width * height - mines;
-        this.flaggedCells = 0;
-        this.gameOver = false;
         this.height = height;
         this.mines = Math.min(mines, width * height);
-        this.minesPlaced = false;
         this.boardWidth = width * cellSize;
         this.boardHeight = height * cellSize;
         this.headerHeight = cellSize * 2;
@@ -186,13 +212,8 @@ class Minefield {
         
         this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + this.headerHeight + border*3);
         this.header = new Header(this.border, this.boardWidth, this.headerHeight);
-        this.header.headerContainer.x = border;
-        this.header.headerContainer.y = border;
         app.stage.addChild(this.header.headerContainer);
-        this.boardContainer = this.createBoard(this.width, this.height, this.cellSize, this.border);
-        this.boardContainer.x = border;
-        this.boardContainer.y = border + this.headerHeight + border;
-        app.stage.addChild(this.boardContainer);
+        this.createBoard();
     }
 
     /**
@@ -203,15 +224,23 @@ class Minefield {
      * @param {Number} boardHeight  Number of cells along y-axis of game board
      * @param {Number} cellSize     Height and Width of one cell
      */
-    createBoard(width, height, cellSize) {
-        let boardContainer = new PIXI.Container();
-        for (let x = 0; x < width; x += 1){
-            for (let y = 0; y < height; y += 1){
+    createBoard() {
+        this.boardContainer = new PIXI.Container();
+        this.board = new Map;
+        this.cellsRemaining = this.width * this.height - this.mines;
+        this.flaggedCells = 0;
+        this.gameOver = false;
+        this.minesPlaced = false;
+
+        for (let x = 0; x < this.width; x += 1){
+            for (let y = 0; y < this.height; y += 1){
                 this.board.set(this.getCellKeyString(x, y), 
-                               new Cell(boardContainer, x * cellSize, y * cellSize, cellSize));
+                               new Cell(this.boardContainer, x * this.cellSize, y * this.cellSize, this.cellSize));
             }
         }
-        return boardContainer;
+        this.boardContainer.x = border;
+        this.boardContainer.y = border + this.headerHeight + border;
+        this.app.stage.addChild(this.boardContainer);
     }
 
     endGame(win){
@@ -388,6 +417,21 @@ class Minefield {
         }
         this.gameOver = true;
     }
+
+    /**
+     * Route clicks to the gameboard or header depending on click location.
+     * @param {*} xCoord 
+     * @param {*} yCoord 
+     */
+    routeClick(xCoord, yCoord){
+        if (yCoord < (this.headerHeight + this.border * 2)){
+            // TODO: Create a 'Header Click Handler' when more options are introduced.
+            // For now, the only interactive button in header is "New Game" button.
+            this.createBoard();
+        } else {
+            this.revealCells(xCoord, yCoord);
+        }
+    }
 }
 
 let minefield;
@@ -410,7 +454,7 @@ if (mode == "beginner"){
 // On left click, reveal cells on game board
 app.stage.on('mouseup', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
-    minefield.revealCells(mouseData.data.global.x, mouseData.data.global.y);
+    minefield.routeClick(mouseData.data.global.x, mouseData.data.global.y);
 });
 
 // On right click, flag a cell
