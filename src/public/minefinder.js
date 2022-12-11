@@ -83,6 +83,9 @@ class Cell {
             case "X":
                 this.color = 0xEE4B2B;
                 break;
+            case "FALSE_FLAG":
+                this.color = 0xFFA500;
+                break;
             default:
                 // Default case also updates the color of revealed cells with no adjacent mines
                 this.color = 0xE6E6FA;
@@ -413,6 +416,9 @@ class Minefield {
             let cell = this.board.get(cellKey);
             if (cell.value == "M" && !cell.flagged) {
                 cell.updateCell("X");
+            } else if (cell.value != "M" && cell.flagged) {
+                // Indicate that a cell was falsely flagged by the player
+                cell.updateCell("FALSE_FLAG");
             }
         }
         this.gameOver = true;
