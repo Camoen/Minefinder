@@ -3,7 +3,6 @@ document.body.appendChild(app.view);
 const Graphics = PIXI.Graphics;
 const cellSize = 40;
 
-
 class Cell {
     constructor(container, xCoord, yCoord, cellSize){
         this.container = container;
@@ -160,12 +159,37 @@ class Header {
         this.headerContainer.y = border;
         this.newGameButtonWidth = width / 7;
         this.trackerWidth = width / 7 * 3;
-        // TODO: this.timer = new Graphics();
         this.mineTracker = new MineTracker(this.headerContainer, 
                                            this.trackerWidth + this.newGameButtonWidth,
                                            this.trackerWidth, height);
-
+        this.createGameTimer(height);
         this.createNewGameButton(height);
+    }
+
+    createGameTimer(height){
+        this.gameTimer = new Graphics();
+        this.gameTimer.beginFill(0x222222)
+            .lineStyle(1, 0x111111, 0.35)
+            .drawRect(0, 0, this.trackerWidth, height)
+            .endFill();
+        
+        this.gameTimerTextStyle = new PIXI.TextStyle({
+            align: "center",
+            fontFamily: "Courier New",
+            fontSize: height * 0.75,
+            fill: 0xFF0000
+        });
+        this.gameTimerText = new PIXI.Text("0", this.gameTimerTextStyle);
+        this.gameTimerText.anchor.set(0.5, 0.5);
+        this.gameTimerText.x = this.gameTimer.width/2;
+        this.gameTimerText.y = this.gameTimer.height/2;
+
+        this.headerContainer.addChild(this.gameTimer);
+        this.gameTimer.addChild(this.gameTimerText);
+    }
+
+    updateGameTimer(value){
+        this.gameTimerText.text = value;
     }
 
     createNewGameButton(height){
@@ -212,6 +236,12 @@ class Minefield {
         this.boardHeight = height * cellSize;
         this.headerHeight = cellSize * 2;
         this.width = width;
+
+        // Game Timer
+        this.elapsedSeconds = 0;
+        this.previousSecond = 0;
+        this.gameTicker = this.createGameTicker();
+        this.gameTicker.add(this.updateGameTicker, this);
         
         this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + this.headerHeight + border*3);
         this.header = new Header(this.border, this.boardWidth, this.headerHeight);
@@ -234,6 +264,26 @@ class Minefield {
         this.flaggedCells = 0;
         this.gameOver = false;
         this.minesPlaced = false;
+        // TODO: Refactor timer functionality. Shouldn't need to update timer from here.
+        // Timer should be a standalone class with start/stop functionality.
+        // Ideal refactor:
+        // App/Game State
+        //    -> Header Class
+        //          -> Header Container for graphical representation (holds Timer, New Game, Mines Remaining)
+        //    -> Timer
+        //          -> should have public function to 'start timer' on first click
+        //          -> should have public function to 'reset timer' when new game is clicked
+        //    -> New Game Button
+        //          -> should call public function to reset board state and reset timer
+        //    -> Mines Remaining
+        //          -> ideally would read board state directly, not require a specific update call
+        //    -> Board Class
+        //          -> Board Container for graphical representation
+        //          -> Board State
+        this.gameTicker.stop();
+        this.elapsedSeconds = 0;
+        this.previousSecond = 0;
+        this.header.updateGameTimer(this.previousSecond);
 
         for (let x = 0; x < this.width; x += 1){
             for (let y = 0; y < this.height; y += 1){
@@ -246,7 +296,32 @@ class Minefield {
         this.app.stage.addChild(this.boardContainer);
     }
 
+    /**
+     * Must create a new Ticker, since the highest level PIXI.Application has its own ticker.
+     * As a result, if we reset ticker via 'app.Ticker.stop()', the app will not render.
+     * May be able to refactor later on and rely on the highest level ticker.
+     */
+    createGameTicker(){
+        let ticker = PIXI.Ticker.shared;
+        ticker.autoStart = false;
+        ticker.stop();
+        return ticker;
+    }
+
+    /**
+     * TODO: Refactor game ticker into separate class if necessary.
+     */
+    updateGameTicker() {
+        this.elapsedSeconds += this.gameTicker.elapsedMS / 1000;
+        if (this.elapsedSeconds >= this.previousSecond + 1 ){
+            this.previousSecond += 1;
+            this.header.updateGameTimer(this.previousSecond);
+        }
+    }
+
+
     endGame(win){
+        this.gameTicker.stop();
         this.revealMines();
         if (win === true){
             this.header.mineTracker.updateRemainingMines(0);
@@ -340,6 +415,10 @@ class Minefield {
         if (!this.minesPlaced){
             this.placeMines(xCoord, yCoord);
             this.minesPlaced = true;
+
+            if (!this.gameTicker.started){
+                this.gameTicker.start();
+            }
         }
         let cell = this.board.get(this.getCellKey(xCoord, yCoord));
 
@@ -473,4 +552,4 @@ app.stage.on('rightdown', function(mouseData) {
 app.view.addEventListener('contextmenu', (e) => {
     console.log("contextmenu", e)
     e.preventDefault();
-  })
+});
