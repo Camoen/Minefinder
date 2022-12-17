@@ -152,25 +152,13 @@ class MineTracker {
     }
 }
 
-class Header {
-    constructor(border, width, height){
-        this.headerContainer = new PIXI.Container();
-        this.headerContainer.x = border;
-        this.headerContainer.y = border;
-        this.newGameButtonWidth = width / 7;
-        this.trackerWidth = width / 7 * 3;
-        this.mineTracker = new MineTracker(this.headerContainer, 
-                                           this.trackerWidth + this.newGameButtonWidth,
-                                           this.trackerWidth, height);
-        this.createGameTimer(height);
-        this.createNewGameButton(height);
-    }
 
-    createGameTimer(height){
+class Timer {
+    constructor(xCoord, height){
         this.gameTimer = new Graphics();
         this.gameTimer.beginFill(0x222222)
             .lineStyle(1, 0x111111, 0.35)
-            .drawRect(0, 0, this.trackerWidth, height)
+            .drawRect(0, 0, xCoord, height)
             .endFill();
         
         this.gameTimerTextStyle = new PIXI.TextStyle({
@@ -183,13 +171,29 @@ class Header {
         this.gameTimerText.anchor.set(0.5, 0.5);
         this.gameTimerText.x = this.gameTimer.width/2;
         this.gameTimerText.y = this.gameTimer.height/2;
-
-        this.headerContainer.addChild(this.gameTimer);
         this.gameTimer.addChild(this.gameTimerText);
     }
 
-    updateGameTimer(value){
+    updateTime(value){
         this.gameTimerText.text = value;
+    }
+
+}
+
+
+class Header {
+    constructor(border, width, height){
+        this.headerContainer = new PIXI.Container();
+        this.headerContainer.x = border;
+        this.headerContainer.y = border;
+        this.newGameButtonWidth = width / 7;
+        this.trackerWidth = width / 7 * 3;
+        this.mineTracker = new MineTracker(this.headerContainer, 
+                                           this.trackerWidth + this.newGameButtonWidth,
+                                           this.trackerWidth, height);
+        this.timer = new Timer(this.trackerWidth, height);
+        this.headerContainer.addChild(this.timer.gameTimer);
+        this.createNewGameButton(height);
     }
 
     createNewGameButton(height){
@@ -225,17 +229,14 @@ class Header {
     }
 }
 
+
 class Minefield {
-    constructor(app, width, height, mines, cellSize, border){
+    constructor(app, cellSize, border){
         this.app = app;
         this.border = border;
         this.cellSize = cellSize;
-        this.height = height;
-        this.mines = Math.min(mines, width * height);
-        this.boardWidth = width * cellSize;
-        this.boardHeight = height * cellSize;
+        this.mode = "beginner"
         this.headerHeight = cellSize * 2;
-        this.width = width;
 
         // Game Timer
         this.elapsedSeconds = 0;
@@ -243,9 +244,36 @@ class Minefield {
         this.gameTicker = this.createGameTicker();
         this.gameTicker.add(this.updateGameTicker, this);
         
+        this.initializeGameVariables(this.mode)
         this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + this.headerHeight + border*3);
         this.header = new Header(this.border, this.boardWidth, this.headerHeight);
         app.stage.addChild(this.header.headerContainer);
+        this.createNewGame();
+    }
+
+    initializeGameVariables(){
+        if (this.mode == "beginner"){
+            this.width = 9;
+            this.height = 9;
+            this.mines = 10;
+        } else if (this.mode == "intermediate") {
+            this.width = 16;
+            this.height = 16;
+            this.mines = 40;
+        } else if (this.mode == "expert"){
+            this.width = 30;
+            this.height = 16;
+            this.mines = 99;
+        }
+        this.mines = Math.min(this.mines, this.width * this.height);
+        this.boardWidth = this.width * this.cellSize;
+        this.boardHeight = this.height * this.cellSize;
+    }
+
+    createNewGame(){
+        this.initializeGameVariables();
+        this.resetGameTicker();
+        this.header.timer.updateTime(0);
         this.createBoard();
     }
 
@@ -264,26 +292,6 @@ class Minefield {
         this.flaggedCells = 0;
         this.gameOver = false;
         this.minesPlaced = false;
-        // TODO: Refactor timer functionality. Shouldn't need to update timer from here.
-        // Timer should be a standalone class with start/stop functionality.
-        // Ideal refactor:
-        // App/Game State
-        //    -> Header Class
-        //          -> Header Container for graphical representation (holds Timer, New Game, Mines Remaining)
-        //    -> Timer
-        //          -> should have public function to 'start timer' on first click
-        //          -> should have public function to 'reset timer' when new game is clicked
-        //    -> New Game Button
-        //          -> should call public function to reset board state and reset timer
-        //    -> Mines Remaining
-        //          -> ideally would read board state directly, not require a specific update call
-        //    -> Board Class
-        //          -> Board Container for graphical representation
-        //          -> Board State
-        this.gameTicker.stop();
-        this.elapsedSeconds = 0;
-        this.previousSecond = 0;
-        this.header.updateGameTimer(this.previousSecond);
 
         for (let x = 0; x < this.width; x += 1){
             for (let y = 0; y < this.height; y += 1){
@@ -315,8 +323,14 @@ class Minefield {
         this.elapsedSeconds += this.gameTicker.elapsedMS / 1000;
         if (this.elapsedSeconds >= this.previousSecond + 1 ){
             this.previousSecond += 1;
-            this.header.updateGameTimer(this.previousSecond);
+            this.header.timer.updateTime(this.previousSecond);
         }
+    }
+
+    resetGameTicker(){
+        this.gameTicker.stop();
+        this.elapsedSeconds = 0;
+        this.previousSecond = 0;
     }
 
 
@@ -512,24 +526,15 @@ class Minefield {
         if (yCoord < (this.headerHeight + this.border * 2)){
             // TODO: Create a 'Header Click Handler' when more options are introduced.
             // For now, the only interactive button in header is "New Game" button.
-            this.createBoard();
+            this.createNewGame();
         } else {
             this.revealCells(xCoord, yCoord);
         }
     }
 }
 
-let minefield;
-// TODO: Allow user to select mode.
-let mode = "beginner";
 let border = 5;
-if (mode == "beginner"){
-    minefield = new Minefield(app, 9, 9, 10, cellSize, border);
-} else if (mode == "intermediate") {
-    minefield = new Minefield(app, 16, 16, 40, cellSize, border);
-} else if (mode == "expert"){
-    minefield = new Minefield(app, 30, 16, 99, cellSize, border);
-}
+let minefield = new Minefield(app, cellSize, border);
 
 // Example of how to override tint for a particular cell
 // minefield.board.get(minefield.getCellKey(border + cellSize - 1, border + cellSize - 1)).square.on('mouseenter', function() {
