@@ -123,11 +123,11 @@ class Cell {
 
 
 class MineTracker {
-    constructor(container, xCoord, width, height){
+    constructor(container, xCoord, yCoord, width, height){
         this.container = container;
         this.display = new Graphics();
         this.display.x = xCoord;
-        this.display.y = 0;
+        this.display.y = yCoord;
         this.display.beginFill(0x222222)
             .lineStyle(1, 0x111111, 0.35)
             .drawRect(0, 0, width, height)
@@ -154,11 +154,13 @@ class MineTracker {
 
 
 class Timer {
-    constructor(xCoord, height){
+    constructor(xCoord, yCoord, width, height){
         this.gameTimer = new Graphics();
+        this.gameTimer.x = xCoord;
+        this.gameTimer.y = yCoord;
         this.gameTimer.beginFill(0x222222)
             .lineStyle(1, 0x111111, 0.35)
-            .drawRect(0, 0, xCoord, height)
+            .drawRect(0, 0, width, height)
             .endFill();
         
         this.gameTimerTextStyle = new PIXI.TextStyle({
@@ -183,23 +185,27 @@ class Timer {
 
 class Header {
     constructor(border, width, height){
+        this.border = border;
         this.headerContainer = new PIXI.Container();
         this.headerContainer.x = border;
         this.headerContainer.y = border;
+        this.modeSelectorHeight = height / 5;
+        this.trackerHeight = height / 5 * 4;
         this.newGameButtonWidth = width / 7;
         this.trackerWidth = width / 7 * 3;
-        this.mineTracker = new MineTracker(this.headerContainer, 
-                                           this.trackerWidth + this.newGameButtonWidth,
-                                           this.trackerWidth, height);
-        this.timer = new Timer(this.trackerWidth, height);
+        this.width = width;
+        this.mineTracker = new MineTracker(this.headerContainer, this.trackerWidth + this.newGameButtonWidth,
+                                           this.modeSelectorHeight, this.trackerWidth, this.trackerHeight);
+        this.timer = new Timer(0, this.modeSelectorHeight, this.trackerWidth, this.trackerHeight);
         this.headerContainer.addChild(this.timer.gameTimer);
-        this.createNewGameButton(height);
+        this.createNewGameButton(this.trackerHeight);
+        this.createModeSelectionButtons(this.modeSelectorHeight);
     }
 
     createNewGameButton(height){
         this.newGameButton = new Graphics();
         this.newGameButton.x = this.trackerWidth;
-        this.newGameButton.y = 0;
+        this.newGameButton.y = this.modeSelectorHeight;
         this.newGameButton.beginFill(0x222222)
             .lineStyle(1, 0x111111, 0.35)
             .drawRect(0, 0, this.newGameButtonWidth, height)
@@ -208,7 +214,7 @@ class Header {
         this.newGameButtonTextStyle = new PIXI.TextStyle({
             align: "center",
             fontFamily: "Courier New",
-            fontSize: this.newGameButtonWidth * 0.35,
+            fontSize: Math.min(this.newGameButtonWidth * 0.35, 40),
             fill: 0xFF0000
         });
         this.newGameButtonText = new PIXI.Text("New\nGame", this.newGameButtonTextStyle);
@@ -227,6 +233,74 @@ class Header {
         this.headerContainer.addChild(this.newGameButton);
         this.newGameButton.addChild(this.newGameButtonText);
     }
+
+    createModeSelectionButtons(height){
+        let width = this.width / 3;
+        this.beginnerButton = this.createModeButton(0, 0, width, height, "beginner")
+        this.intermediateButton = this.createModeButton(width, 0, width, height, "intermediate")
+        this.expertButton = this.createModeButton(width*2, 0, width, height, "expert")
+
+        this.headerContainer.addChild(this.beginnerButton);
+        this.headerContainer.addChild(this.intermediateButton);
+        this.headerContainer.addChild(this.expertButton);
+
+    }
+
+    createModeButton(xCoord, yCoord, width, height, mode){
+        let modeButton = new Graphics();
+        modeButton.beginFill(0x222222)
+            .lineStyle(1, 0x111111, 0.35)
+            .drawRect(0, 0, width, height)
+            .endFill();
+
+        modeButton.x = xCoord;
+        modeButton.y = yCoord;
+        let modeButtonTextStyle = new PIXI.TextStyle({
+            align: "center",
+            fontFamily: "Courier New",
+            fontSize: height * 0.75,
+            fill: 0xFF0000
+        });
+        let modeButtonText = new PIXI.Text(mode, modeButtonTextStyle);
+        modeButtonText.anchor.set(0.5, 0.5);
+        modeButtonText.x = width/2;
+        modeButtonText.y = height/2;
+
+        modeButton.interactive = true;
+        modeButton.on('mouseenter', function() {
+            this.tint = 0x90EE90;
+        })
+        modeButton.on('mouseleave', function() {
+            this.tint = 0xFFFFFF;
+        })
+        // TODO: Ensure that only one mode is lit up at a time (currently, clicking Beginner and then Expert will result in both modes being colored yellow)
+        modeButton.on('mouseup', function() {
+            modeButton.clear();
+            modeButton.beginFill(0xFFA500)
+            .lineStyle(1, 0x111111, 0.35)
+            .drawRect(0, 0, width, height)
+            .endFill();
+        })
+
+        modeButton.addChild(modeButtonText);
+        return modeButton;
+    }
+
+    selectMode(modeButton){
+
+    }
+
+    getModeOption(xCoord, yCoord){
+        if (yCoord < this.modeSelectorHeight + this.border) {
+            if (xCoord < this.width / 3){
+                return "beginner"
+            } else if (xCoord < this.width / 3 * 2){
+                return "intermediate"
+            } else {
+                return "expert"
+            }
+        }
+    }
 }
 
 
@@ -235,8 +309,9 @@ class Minefield {
         this.app = app;
         this.border = border;
         this.cellSize = cellSize;
+        this.currentMode = null;
         this.mode = "beginner"
-        this.headerHeight = cellSize * 2;
+        this.headerHeight = cellSize * 2.5;
 
         // Game Timer
         this.elapsedSeconds = 0;
@@ -244,14 +319,11 @@ class Minefield {
         this.gameTicker = this.createGameTicker();
         this.gameTicker.add(this.updateGameTicker, this);
         
-        this.initializeGameVariables(this.mode)
-        this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + this.headerHeight + border*3);
-        this.header = new Header(this.border, this.boardWidth, this.headerHeight);
-        app.stage.addChild(this.header.headerContainer);
+        this.initializeGame();
         this.createNewGame();
     }
 
-    initializeGameVariables(){
+    initializeGame(){
         if (this.mode == "beginner"){
             this.width = 9;
             this.height = 9;
@@ -265,13 +337,23 @@ class Minefield {
             this.height = 16;
             this.mines = 99;
         }
+
         this.mines = Math.min(this.mines, this.width * this.height);
         this.boardWidth = this.width * this.cellSize;
         this.boardHeight = this.height * this.cellSize;
+
+        if (this.currentMode != this.mode){
+            // Clean up previous board and header, if already created
+            this.app.stage.removeChildren();
+            this.app.renderer.resize(this.boardWidth + border*2, this.boardHeight + this.headerHeight + border*3);
+            this.header = new Header(this.border, this.boardWidth, this.headerHeight);
+            this.app.stage.addChild(this.header.headerContainer);
+            this.currentMode = this.mode;
+        }
     }
 
     createNewGame(){
-        this.initializeGameVariables();
+        this.initializeGame();
         this.resetGameTicker();
         this.header.timer.updateTime(0);
         this.createBoard();
@@ -524,9 +606,13 @@ class Minefield {
      */
     routeClick(xCoord, yCoord){
         if (yCoord < (this.headerHeight + this.border * 2)){
-            // TODO: Create a 'Header Click Handler' when more options are introduced.
-            // For now, the only interactive button in header is "New Game" button.
-            this.createNewGame();
+            let mode = this.header.getModeOption(xCoord, yCoord);
+            if (mode != null){
+                console.log(mode)
+                this.mode = mode
+            } else {
+                this.createNewGame();
+            }
         } else {
             this.revealCells(xCoord, yCoord);
         }
