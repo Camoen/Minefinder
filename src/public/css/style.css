@@ -1,5 +1,18 @@
+[v-cloak] {
+  display: none;
+}
+
 body {
     /* padding-top: 53px; */
     /* font-family: 'Oswald', sans-serif; */
     background-color:cadetblue;
   }
+
+.flex-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#game {
+  margin: auto;
+}

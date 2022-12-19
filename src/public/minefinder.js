@@ -1,8 +1,8 @@
 const app = new PIXI.Application();
-document.body.appendChild(app.view);
+const gameDiv = document.querySelector('#game')
+gameDiv.appendChild(app.view);
 const Graphics = PIXI.Graphics;
 const cellSize = 40;
-// const socket = io();
 
 class Cell {
     constructor(container, xCoord, yCoord, cellSize){

@@ -4,19 +4,26 @@ const path = require('path')
 const app = express();
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server);
+const socketio = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-
-io.on('connection', (socket) => {
+var usernames = {};
+socketio.on('connection', (socket) => {
   console.log('a user connected');
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    console.log(socket.username, ' disconnected');
+    delete usernames[socket.username];
   });
+
+  socket.on('user-created', (username)=>{
+		socket.username = username;
+		usernames[username] = username;
+		console.log("Users: ", usernames);
+	});
 });
 
 

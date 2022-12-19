@@ -7,7 +7,46 @@
     <script src="https://pixijs.download/release/pixi.js"></script>
   </head>
   <body>
+    <div id="app">
+      <div class="flex-container">
+        <div>
+          <div v-if="logged_in" v-cloak>
+            <h3>{{username}}</h3>
+          </div>
+          <div v-else v-cloak>
+            <form @submit.prevent="createUser">
+              <input id="message_input" autocomplete="off" v-model="username" placeholder="Enter Username" /><button>Select Username</button>
+            </form>
+          </div>
+        </div>
+        <div id="game"></div>
+        
+        <div></div>
+      </div> 
+    </div>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script>
+      const socket = io();
+      const vueApp = new Vue({
+        el: '#app',
+
+        data: {
+          username: null,
+          logged_in: false,
+        },
+
+        created() {},
+        methods: {
+          createUser() {
+		  			this.logged_in = true;
+		  			socket.emit('user-created', this.username);
+            console.log(this)
+		  		},
+        }
+      });
+
+    </script>
     <script src="./minefinder.js"></script>
   </body>
 </html>
