@@ -2,7 +2,7 @@ const app = new PIXI.Application();
 document.body.appendChild(app.view);
 const Graphics = PIXI.Graphics;
 const cellSize = 40;
-const socket = io();
+// const socket = io();
 
 class Cell {
     constructor(container, xCoord, yCoord, cellSize){
@@ -419,12 +419,9 @@ class Minefield {
 
     endGame(win){
         this.gameTicker.stop();
-        this.revealMines();
+        this.revealMines(win);
         if (win === true){
             this.header.mineTracker.updateRemainingMines(0);
-            alert("You won! :D");
-        } else{
-            alert("You lost! D:");
         }
     }
 
@@ -586,15 +583,22 @@ class Minefield {
     /**
      * When a player clicks a mine, reveal all remaining cells.
      */
-    revealMines(){
+    revealMines(win){
         let cellKeys = Array.from(this.board.keys());
         for (const cellKey of cellKeys){
             let cell = this.board.get(cellKey);
-            if (cell.value == "M" && !cell.flagged) {
-                cell.updateCell("X");
-            } else if (cell.value != "M" && cell.flagged) {
-                // Indicate that a cell was falsely flagged by the player
-                cell.updateCell("FALSE_FLAG");
+            if (win){
+                // Mark all mines with flags if game is won
+                if (cell.value == "M" && !cell.flagged) {
+                    cell.toggleFlag();
+                }
+            } else {
+                if (cell.value == "M" && !cell.flagged) {
+                    cell.updateCell("X");
+                } else if (cell.value != "M" && cell.flagged) {
+                    // Indicate that a cell was falsely flagged by the player
+                    cell.updateCell("FALSE_FLAG");
+                }
             }
         }
         this.gameOver = true;
