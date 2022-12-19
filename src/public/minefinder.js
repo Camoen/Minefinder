@@ -357,6 +357,7 @@ class Minefield {
         this.initializeGame();
         this.resetGameTicker();
         this.header.timer.updateTime(0);
+        this.header.newGameButtonText.text = "New\nGame";
         this.createBoard();
     }
 
@@ -422,6 +423,9 @@ class Minefield {
         this.revealMines(win);
         if (win === true){
             this.header.mineTracker.updateRemainingMines(0);
+            this.header.newGameButtonText.text = ":)";
+        } else {
+            this.header.newGameButtonText.text = ":(";
         }
     }
 
