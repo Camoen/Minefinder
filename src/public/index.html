@@ -2,47 +2,83 @@
 <html>
   <head>
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <!-- TODO: Pick static version and use minified version (pixi.min.js) -->
     <script src="https://pixijs.download/release/pixi.js"></script>
   </head>
   <body>
     <div id="app">
-      <div class="flex-container">
-        <div>
-          <div v-if="logged_in" v-cloak>
-            <h3>{{username}}</h3>
+      <v-app>
+        <div class="flex-container">
+          <div>
+            <div v-if="loggedIn" v-cloak>
+              <h3>{{username}}</h3>
+            </div>
+            <div v-else v-cloak>
+              <!-- TODO: Use Vuetify to create better looking form here. -->
+              <form @submit.prevent="createUser">
+                <input id="messageInput" autocomplete="off" v-model="username" placeholder="Enter Username" /><button>Select Username</button>
+              </form>
+            </div>
+            <div v-if="modeSelected !== null" v-cloak>
+              <h3>{{modeSelected}}</h3>
+            </div>
+            <div v-else v-cloak>
+              <h3 style="text-align:center">Select Mode</h3>
+              <v-btn raised v-for="mode in gameModes" :key="mode.id" @click="selectGameMode(mode)">{{mode}}</v-btn>
+            </div>
           </div>
-          <div v-else v-cloak>
-            <form @submit.prevent="createUser">
-              <input id="message_input" autocomplete="off" v-model="username" placeholder="Enter Username" /><button>Select Username</button>
-            </form>
-          </div>
-        </div>
-        <div id="game"></div>
-        
-        <div></div>
-      </div> 
+          <div id="game"></div>
+
+          <div></div>
+        </div> 
+      </v-app>
     </div>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
     <script>
       const socket = io();
+      const vuetify = new Vuetify({
+        theme: {
+          options: {
+            customProperties: true,
+          },
+          themes: {
+            light: {
+              background: '#5f9ea0',
+            },
+            dark: {
+              background: '#777777',
+            },
+          },
+            dark: false,
+        },
+      });
       const vueApp = new Vue({
         el: '#app',
+        vuetify: vuetify,
 
         data: {
-          username: null,
-          logged_in: false,
+          gameModes: ["Individual", "Multiplayer"],
+          loggedIn: false,
+          modeSelected: null,
+          username: null
         },
 
         created() {},
         methods: {
           createUser() {
-		  			this.logged_in = true;
+		  			this.loggedIn = true;
 		  			socket.emit('user-created', this.username);
-            console.log(this)
+            console.log(this);
 		  		},
+
+          selectGameMode(mode) {
+            this.modeSelected = mode;
+            console.log(mode);
+          }
         }
       });
 
