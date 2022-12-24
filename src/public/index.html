@@ -2,6 +2,7 @@
 <html>
   <head>
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <!-- TODO: Pick static version and use minified version (pixi.min.js) -->
@@ -12,24 +13,48 @@
       <v-app>
         <div class="flex-container">
           <div>
-            <div v-if="loggedIn" v-cloak>
-              <h3>{{username}}</h3>
-            </div>
-            <div v-else v-cloak>
-              <!-- TODO: Use Vuetify to create better looking form here. -->
-              <form @submit.prevent="createUser">
-                <input id="messageInput" autocomplete="off" v-model="username" placeholder="Enter Username" /><button>Select Username</button>
-              </form>
-            </div>
             <div v-if="modeSelected !== null" v-cloak>
               <h3>{{modeSelected}}</h3>
+              <v-btn raised @click="deselectGameMode()">Back to Menu</v-btn>
             </div>
             <div v-else v-cloak>
               <h3 style="text-align:center">Select Mode</h3>
               <v-btn raised v-for="mode in gameModes" :key="mode.id" @click="selectGameMode(mode)">{{mode}}</v-btn>
             </div>
           </div>
-          <div id="game"></div>
+          <div id="game" v-show="modeSelected === this.gameModes[0]"></div>
+          <div id="roomSelection" v-show="modeSelected === this.gameModes[1]">
+            <div v-if="loggedIn" v-cloak>
+              <h3 style="text-align:center">Hello, {{username}}!<br>Select or Create a Room<br>(TODO)</h3>
+              <v-btn
+                block
+                color="success"
+                size="large"
+                type="submit"
+                variant="elevated"
+                @click="logOut()">Change Username</v-btn>
+            </div>
+            <div v-else v-cloak>
+              <v-form v-model="form" @submit.prevent="createUser">
+                <v-text-field 
+                  label="Username"
+                  clearable
+                  placeholder="Minefinder#123"
+                  hint="Provide a username to join or create a room."
+                  :rules="[
+                    v => !!v || 'Field is required'
+                  ]"
+                  v-model="username"></v-text-field>
+                <v-btn
+                  :disabled="!form"
+                  block
+                  color="success"
+                  size="large"
+                  type="submit"
+                  variant="elevated">Select Username</v-btn>
+              </v-form>
+            </div>
+          </div>
 
           <div></div>
         </div> 
@@ -61,6 +86,7 @@
         vuetify: vuetify,
 
         data: {
+          form: false,
           gameModes: ["Individual", "Multiplayer"],
           loggedIn: false,
           modeSelected: null,
@@ -75,9 +101,18 @@
             console.log(this);
 		  		},
 
+          deselectGameMode(){
+            this.modeSelected = null;
+          },
+
           selectGameMode(mode) {
             this.modeSelected = mode;
             console.log(mode);
+          },
+
+          logOut(){
+            this.loggedIn = false;
+            socket.emit('user-deleted', this.username);
           }
         }
       });

@@ -24,6 +24,11 @@ socketio.on('connection', (socket) => {
 		usernames[username] = username;
 		console.log("Users: ", usernames);
 	});
+
+  socket.on('user-deleted', (username)=>{
+		delete usernames[socket.username];
+		console.log("Users: ", usernames);
+	});
 });
 
 

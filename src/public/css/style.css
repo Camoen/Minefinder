@@ -13,7 +13,7 @@ body {
   flex-wrap: wrap;
 }
 
-#game {
+#game, #roomSelection {
   margin: auto;
 }
 
