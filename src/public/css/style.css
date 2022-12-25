@@ -13,6 +13,10 @@ body {
   flex-wrap: wrap;
 }
 
+.no-uppercase {
+  text-transform: unset !important;
+}
+
 #game, #roomSelection {
   margin: auto;
 }

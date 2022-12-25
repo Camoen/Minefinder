@@ -23,9 +23,29 @@
             </div>
           </div>
           <div id="game" v-show="modeSelected === this.gameModes[0]"></div>
-          <div id="roomSelection" v-show="modeSelected === this.gameModes[1]">
+          <div id="roomSelection" v-show="modeSelected === this.gameModes[1] && roomSelected === null">
             <div v-if="loggedIn" v-cloak>
               <h3 style="text-align:center">Hello, {{username}}!<br>Select or Create a Room<br>(TODO)</h3>
+              <v-btn raised class="no-uppercase" v-for="room in roomList" :key="room.id" @click="selectRoom(room)">{{room}}</v-btn>
+              <v-form v-model="roomNameForm" @submit.prevent="createRoom">
+                <v-text-field 
+                  label="Room Name"
+                  clearable
+                  placeholder="My Cool Room"
+                  hint="Provide a room name to create a room."
+                  :rules="[
+                    v => !!v || 'Field is required',
+                    v => validateRoom() || 'Room already exists'
+                  ]"
+                  v-model="roomName"></v-text-field>
+                <v-btn
+                  :disabled="!roomNameForm"
+                  block
+                  color="success"
+                  size="large"
+                  type="submit"
+                  variant="elevated">Create Room</v-btn>
+              </v-form>
               <v-btn
                 block
                 color="success"
@@ -35,7 +55,7 @@
                 @click="logOut()">Change Username</v-btn>
             </div>
             <div v-else v-cloak>
-              <v-form v-model="form" @submit.prevent="createUser">
+              <v-form v-model="usernameForm" @submit.prevent="createUser">
                 <v-text-field 
                   label="Username"
                   clearable
@@ -46,7 +66,7 @@
                   ]"
                   v-model="username"></v-text-field>
                 <v-btn
-                  :disabled="!form"
+                  :disabled="!usernameForm"
                   block
                   color="success"
                   size="large"
@@ -55,7 +75,16 @@
               </v-form>
             </div>
           </div>
-
+          <div id="multiplayerGame" v-show="roomSelected !== null">
+            <h3>TODO: add multiplayer game component</h3>
+            <v-btn
+              block
+              color="success"
+              size="large"
+              type="submit"
+              variant="elevated"
+              @click="leaveRoom()">Leave Room</v-btn>
+          </div>
           <div></div>
         </div> 
       </v-app>
@@ -86,19 +115,36 @@
         vuetify: vuetify,
 
         data: {
-          form: false,
           gameModes: ["Individual", "Multiplayer"],
           loggedIn: false,
           modeSelected: null,
-          username: null
+          roomList: [],
+          roomName: "",
+          roomNameForm: false,
+          roomSelected: null,
+          username: null,
+          usernameForm: false
         },
 
-        created() {},
+        created() {
+          socket.on('update-room-list', (rooms) => {
+            console.log("this has been called with ", rooms);
+            this.roomList = rooms;
+          });
+        },
         methods: {
+          createRoom() {
+            this.roomSelected = this.roomName;
+            socket.emit('room-created', this.roomSelected, this.username);
+            console.log('Created room: ', this.roomSelected);
+            // TODO [optional]: Don't allow a user to create a custom room, and instead manage room naming automatically
+          },
+
           createUser() {
 		  			this.loggedIn = true;
 		  			socket.emit('user-created', this.username);
             console.log(this);
+            // TODO: Allow identical usernames and attach a UUID, otherwise prevent duplicate usernames
 		  		},
 
           deselectGameMode(){
@@ -110,9 +156,25 @@
             console.log(mode);
           },
 
+          selectRoom(room){
+            this.roomSelected = room;
+            socket.emit('user-joined-room', this.roomSelected, this.username);
+            console.log(this.username, 'joined ', this.roomSelected);
+          },
+
+          leaveRoom(){
+            socket.emit('user-left-room', this.roomSelected, this.username);
+            this.roomSelected = null;
+          },
+
           logOut(){
             this.loggedIn = false;
             socket.emit('user-deleted', this.username);
+          },
+
+          validateRoom(){
+            // TODO: Turn roomList into a set for faster lookup.
+            return !(this.roomList.includes(this.roomName));
           }
         }
       });
