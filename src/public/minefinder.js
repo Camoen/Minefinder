@@ -4,6 +4,11 @@ gameDiv.appendChild(app.view);
 const Graphics = PIXI.Graphics;
 const cellSize = 40;
 
+// Example of how to use socket from minefinder.js (note that 'socket' var is already defined in index.html)
+socket.on('update-room-list', (rooms) => {
+    console.log("[socket log from minefinder.js] this has been called with ", rooms);
+});
+
 class Cell {
     constructor(container, xCoord, yCoord, cellSize){
         this.container = container;

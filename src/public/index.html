@@ -22,7 +22,6 @@
               <v-btn raised v-for="mode in gameModes" :key="mode.id" @click="selectGameMode(mode)">{{mode}}</v-btn>
             </div>
           </div>
-          <div id="game" v-show="modeSelected === this.gameModes[0]"></div>
           <div id="roomSelection" v-show="modeSelected === this.gameModes[1] && roomSelected === null">
             <div v-if="loggedIn" v-cloak>
               <h3 style="text-align:center">Hello, {{username}}!<br>Select or Create a Room<br>(TODO)</h3>
@@ -75,16 +74,17 @@
               </v-form>
             </div>
           </div>
-          <div id="multiplayerGame" v-show="roomSelected !== null">
-            <h3>TODO: add multiplayer game component</h3>
+          <div id="gameContainer" v-show="modeSelected === this.gameModes[0] || roomSelected !== null">
+            <div id="game"></div>
             <v-btn
               block
               color="success"
               size="large"
               type="submit"
               variant="elevated"
-              @click="leaveRoom()">Leave Room</v-btn>
-          </div>
+              @click="leaveRoom()"
+              v-show="roomSelected !== null">Leave Room</v-btn>
+            </div>
           <div></div>
         </div> 
       </v-app>
@@ -149,6 +149,9 @@
 
           deselectGameMode(){
             this.modeSelected = null;
+            if (this.roomSelected !== null){
+              this.leaveRoom();
+            }
           },
 
           selectGameMode(mode) {
@@ -160,14 +163,17 @@
             this.roomSelected = room;
             socket.emit('user-joined-room', this.roomSelected, this.username);
             console.log(this.username, 'joined ', this.roomSelected);
+            // TODO: Reset game state.
           },
 
           leaveRoom(){
             socket.emit('user-left-room', this.roomSelected, this.username);
             this.roomSelected = null;
+            // TODO: Reset game state.
           },
 
           logOut(){
+            // TODO: Remove user from current room, if applicable
             this.loggedIn = false;
             socket.emit('user-deleted', this.username);
           },
