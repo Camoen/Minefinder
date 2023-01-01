@@ -74,6 +74,9 @@ class Cell {
         }
 
         switch(this.value){
+            case "SAFE":
+                this.color = 0x90EE90;
+                break;
             case "X":
                 this.color = 0xEE4B2B;
                 break;
@@ -379,7 +382,7 @@ class Minefield {
         }
         this.boardContainer.x = border;
         this.boardContainer.y = border + this.headerHeight + border;
-        this.app.stage.addChild(this.boardContainer);
+        this.app.stage.addChild(this.boardContainer);  
     }
 
     /**
@@ -467,9 +470,11 @@ class Minefield {
      * @param {Number} yCoord 
      * @returns
      */
-    placeMines(xCoord, yCoord){
+    createMines(xCoord, yCoord){
         let placedMines = 0;
         let cellKeys = Array.from(this.board.keys());
+        // Track mine positions to export to other players in the same room.
+        this.minePositions = {};
         // Handle edge case where all cells are mines
         if (this.mines == cellKeys.length){
             for (const cellKey of cellKeys){
@@ -477,18 +482,37 @@ class Minefield {
             }
         } else {
             let safePosition = this.getCellKey(xCoord, yCoord);
+            this.minePositions ["safe"] = safePosition;
+            this.minePositions ["mines"] = [];
             cellKeys.splice(cellKeys.indexOf(safePosition), 1);
             while (placedMines < this.mines){
                 let cellKeyIndex = Math.floor(Math.random() * cellKeys.length);
                 let cellKey = cellKeys[cellKeyIndex];
-                if (this.board.get(cellKey).value == "E") {
-                    this.board.get(cellKey).value = "M";
-                    cellKeys.splice(cellKeyIndex, 1);
-                    placedMines += 1;
-                }
+                this.board.get(cellKey).value = "M";
+                this.minePositions["mines"].push(cellKey);
+                cellKeys.splice(cellKeyIndex, 1);
+                placedMines += 1;
             }
         }
         this.header.mineTracker.updateRemainingMines(placedMines);
+    }
+
+    /**
+     * In multiplayer modes, this function is used to update the player's board to match
+     * the lead player. Takes in a map containing the following:
+     *   "safe": cell key for the guaranteed safe cell (in format '0|3')
+     *   "mines": an array of cells with mines (in format ['0|2', '3|5', ...])
+     * 
+     * @param {Map} minePositions 
+     */
+    placeMines(minePositions){
+        // Flag lead player's starting cell as safe
+        this.board.get[minePositions["safe"]].updateCell("SAFE");
+        // Set value for all cells that should have mines
+        for (var i = 0; i < minePositions["mines"].length; i++){ 
+            this.board.get(minePositions["mines"][i]).value = "M";
+        }
+        this.minesPlaced = true;
     }
 
     /**
@@ -505,7 +529,7 @@ class Minefield {
         // Could refactor to generate mines when board is created. Then, if first click 
         // happens to be a mine, move the mine to some arbitrary empty cell (if available)
         if (!this.minesPlaced){
-            this.placeMines(xCoord, yCoord);
+            this.createMines(xCoord, yCoord);
             this.minesPlaced = true;
 
             if (!this.gameTicker.started){

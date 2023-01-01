@@ -22,8 +22,8 @@ socketio.on('connection', (socket) => {
   });
 
   socket.on('room-created', (roomName, username)=>{
-		rooms[roomName] = new Set();
-    rooms[roomName].add(username);
+		rooms[roomName] = {};
+    rooms[roomName]["users"] = {};
     socketio.emit('update-room-list',  Object.keys(rooms));
 		console.log("Rooms: ", rooms);
 	});
@@ -42,13 +42,14 @@ socketio.on('connection', (socket) => {
 	});
 
   socket.on('user-joined-room', (roomName, username)=>{
-		rooms[roomName].add(username);
+    // Init a dictionary to track user-level data in the room
+		rooms[roomName]["users"][username] = {};
 		console.log("Rooms: ", rooms);
 	});
 
   socket.on('user-left-room', (roomName, username)=>{
-		rooms[roomName].delete(username);
-    if (rooms[roomName].size === 0){
+		rooms[roomName]["users"].delete(username);
+    if (rooms[roomName]["users"].size === 0){
       // If a room is empty, delete it and push the room's termination to all active users
       delete rooms[roomName];
       socketio.emit('update-room-list',  Object.keys(rooms));
