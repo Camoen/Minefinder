@@ -1,3 +1,10 @@
+// Set up game objects
+const app = new PIXI.Application();
+const Graphics = PIXI.Graphics;
+const cellSize = 40;
+let border = 5;
+let minefield = new Minefield(app, cellSize, border);
+
 // Set up Vue app and handle app logic
 const socket = io();
 const vuetify = new Vuetify({
@@ -40,9 +47,10 @@ const vueApp = new Vue({
     },
     methods: {
     createRoom() {
-        this.roomSelected = this.roomName;
-        socket.emit('room-created', this.roomSelected, this.username);
+        socket.emit('room-created', this.roomName, this.username);
         console.log('Created room: ', this.roomSelected);
+        // Automatically join the room upon creation.
+        this.selectRoom(this.roomName);
         // TODO [optional]: Don't allow a user to create a custom room, and instead manage room naming automatically
     },
 
@@ -56,7 +64,7 @@ const vueApp = new Vue({
     deselectGameMode(){
         this.modeSelected = null;
         if (this.roomSelected !== null){
-        this.leaveRoom();
+            this.leaveRoom();
         }
     },
 
@@ -69,13 +77,13 @@ const vueApp = new Vue({
         this.roomSelected = room;
         socket.emit('user-joined-room', this.roomSelected, this.username);
         console.log(this.username, 'joined ', this.roomSelected);
-        // TODO: Reset game state.
+        minefield.createNewGame();
     },
 
     leaveRoom(){
         socket.emit('user-left-room', this.roomSelected, this.username);
         this.roomSelected = null;
-        // TODO: Reset game state.
+        minefield.createNewGame();
     },
 
     logOut(){
@@ -91,19 +99,16 @@ const vueApp = new Vue({
     }
 });
 
-// Set up game container and handle game logic
-const app = new PIXI.Application();
-const gameDiv = document.querySelector('#game')
-gameDiv.appendChild(app.view);
-const Graphics = PIXI.Graphics;
-const cellSize = 40;
-let border = 5;
-let minefield = new Minefield(app, cellSize, border);
+
 
 // Example of how to override tint for a particular cell
 // minefield.board.get(minefield.getCellKey(border + cellSize - 1, border + cellSize - 1)).square.on('mouseenter', function() {
 //     this.tint = 0x00FF00;
 // });
+
+// Append game container to page and handle game logic
+const gameDiv = document.querySelector('#game');
+gameDiv.appendChild(app.view);
 
 // On left click, reveal cells on game board
 app.stage.on('mouseup', function(mouseData) {
