@@ -1,9 +1,10 @@
 class Cell {
-    constructor(container, xCoord, yCoord, cellSize){
+    constructor(container, cellKey, xCoord, yCoord, cellSize){
         this.container = container;
         this.color = 0x4433AA;
         this.defaultColor = 0x4433AA;
         this.cellSize = cellSize;
+        this.cellKey = cellKey;
         this.flagged = false;
         this.revealed = false;
         this.square = new Graphics();
@@ -74,9 +75,6 @@ class Cell {
         }
 
         switch(this.value){
-            case "SAFE":
-                this.color = 0x90EE90;
-                break;
             case "X":
                 this.color = 0xEE4B2B;
                 break;
@@ -376,8 +374,10 @@ class Minefield {
 
         for (let x = 0; x < this.width; x += 1){
             for (let y = 0; y < this.height; y += 1){
-                this.board.set(this.getCellKeyString(x, y), 
-                               new Cell(this.boardContainer, x * this.cellSize, y * this.cellSize, this.cellSize));
+                let cellKey = this.getCellKeyString(x, y);
+                this.board.set(cellKey, 
+                               new Cell(this.boardContainer, cellKey,
+                                        x * this.cellSize, y * this.cellSize, this.cellSize));
             }
         }
         this.boardContainer.x = border;
@@ -506,23 +506,25 @@ class Minefield {
      * @param {Map} minePositions 
      */
     placeMines(minePositions){
-        // Flag lead player's starting cell as safe
-        this.board.get[minePositions["safe"]].updateCell("SAFE");
         // Set value for all cells that should have mines
         for (var i = 0; i < minePositions["mines"].length; i++){ 
             this.board.get(minePositions["mines"][i]).value = "M";
         }
+        // Start game timer and reveal cells starting from the location selected by the lead player
         this.minesPlaced = true;
+        this.gameTicker.start();
+        this.revealCells(this.board.get(minePositions["safe"]));
     }
 
     /**
      * Traverse the board and recursively reveal all adjacent cells that are blank.
+     * Starts at a position specified by coordinates.
      * 
      * @param {Number} xCoord 
      * @param {Number} yCoord 
      * @returns 
      */
-    revealCells(xCoord, yCoord){
+    revealCellsFromCoordinates(xCoord, yCoord){
         if (this.gameOver){
             return;
         }
@@ -537,7 +539,17 @@ class Minefield {
             }
         }
         let cell = this.board.get(this.getCellKey(xCoord, yCoord));
+        this.revealCells(cell);
+    }
 
+    /**
+     * Traverse the board and recursively reveal all adjacent cells that are blank.
+     * Starts from a specified cell.
+     * 
+     * @param {*} cell 
+     * @returns 
+     */
+    revealCells(cell){
         // If the cell is flagged or already revealed, do nothing
         if (cell.flagged || !(cell.value == "E" || cell.value == "M")) {
             return;
@@ -559,7 +571,6 @@ class Minefield {
             let coords = cellKey.split("|");
             let xCoord = Number(coords[0]);
             let yCoord = Number(coords[1]);
-            console.log(cellKey, coords, xCoord, yCoord);
             let cell = this.board.get(cellKey);
             // Check that the cell isn't flagged or already revealed
             if (cell.flagged || cell.value != "E"){
@@ -577,7 +588,6 @@ class Minefield {
                     adjacentMines += 1;
                 }
             }
-            console.log("adjMines: ", adjacentMines);
             // Set the revealed cell's new value
             if (adjacentMines == 0){
                 cell.updateCell("B");
@@ -599,7 +609,7 @@ class Minefield {
             }
         }
 
-        traversalHelper(this.getCellKey(xCoord, yCoord));
+        traversalHelper(cell.cellKey);
     }
 
     /**
@@ -628,6 +638,8 @@ class Minefield {
 
     /**
      * Route clicks to the gameboard or header depending on click location.
+     * Returns if game is started or not.
+     * 
      * @param {*} xCoord 
      * @param {*} yCoord 
      */
@@ -635,13 +647,13 @@ class Minefield {
         if (yCoord < (this.headerHeight + this.border * 2)){
             let mode = this.header.getModeOption(xCoord, yCoord);
             if (mode != null){
-                console.log(mode)
                 this.mode = mode
             } else {
                 this.createNewGame();
             }
         } else {
-            this.revealCells(xCoord, yCoord);
+            this.revealCellsFromCoordinates(xCoord, yCoord);
         }
+        return this.gameTicker.started;
     }
 }

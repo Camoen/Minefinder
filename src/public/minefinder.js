@@ -29,6 +29,7 @@ const vueApp = new Vue({
 
     data: {
     gameModes: ["Individual", "Multiplayer"],
+    gameStarted: false,
     loggedIn: false,
     modeSelected: null,
     roomList: [],
@@ -44,11 +45,17 @@ const vueApp = new Vue({
         console.log("this has been called with ", rooms);
         this.roomList = rooms;
     });
+
+    socket.on('update-game-board', (minePositions) => {
+        minefield.placeMines(minePositions);
+        this.gameStarted = true;
+        //TODO: Instead of coloring the safe square, it may be more fair
+        // to make the first click for the player, to ensure everyone starts at the same time.
+    });
     },
     methods: {
     createRoom() {
-        socket.emit('room-created', this.roomName, this.username);
-        console.log('Created room: ', this.roomSelected);
+        socket.emit('room-created', this.roomName);
         // Automatically join the room upon creation.
         this.selectRoom(this.roomName);
         // TODO [optional]: Don't allow a user to create a custom room, and instead manage room naming automatically
@@ -113,7 +120,16 @@ gameDiv.appendChild(app.view);
 // On left click, reveal cells on game board
 app.stage.on('mouseup', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
-    minefield.routeClick(mouseData.data.global.x, mouseData.data.global.y);
+    let gameStarted = minefield.routeClick(mouseData.data.global.x, mouseData.data.global.y);
+    // If lead player has started the game, emit minefield positions to all players in the room.
+    if (gameStarted){
+        if (vueApp.roomSelected !== null && !vueApp.gameStarted){
+            vueApp.gameStarted = true;
+            socket.emit('game-board-created', vueApp.username, vueApp.roomSelected, minefield.minePositions);
+        }
+    } else {
+        vueApp.gameStarted = false;
+    }
 });
 
 // On right click, flag a cell
