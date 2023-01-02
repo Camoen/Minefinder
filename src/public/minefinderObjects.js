@@ -348,7 +348,9 @@ class Minefield {
         }
     }
 
-    createNewGame(){
+    createNewGame(mode){
+        this.mode = mode || this.mode;
+        this.header.mineTracker.updateRemainingMines(0);
         this.initializeGame();
         this.resetGameTicker();
         this.header.timer.updateTime(0);
@@ -512,6 +514,7 @@ class Minefield {
         }
         // Start game timer and reveal cells starting from the location selected by the lead player
         this.minesPlaced = true;
+        this.header.mineTracker.updateRemainingMines(minePositions["mines"].length);
         this.gameTicker.start();
         this.revealCells(this.board.get(minePositions["safe"]));
     }
@@ -648,9 +651,8 @@ class Minefield {
             let mode = this.header.getModeOption(xCoord, yCoord);
             if (mode != null){
                 this.mode = mode
-            } else {
-                this.createNewGame();
             }
+            this.createNewGame();
         } else {
             this.revealCellsFromCoordinates(xCoord, yCoord);
         }

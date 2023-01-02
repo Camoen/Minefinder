@@ -46,6 +46,13 @@ const vueApp = new Vue({
         this.roomList = rooms;
     });
 
+    socket.on('reset-game-board', (mode) => {
+        minefield.createNewGame(mode);
+        this.gameStarted = true;
+        //TODO: Instead of coloring the safe square, it may be more fair
+        // to make the first click for the player, to ensure everyone starts at the same time.
+    });
+
     socket.on('update-game-board', (minePositions) => {
         minefield.placeMines(minePositions);
         this.gameStarted = true;
@@ -128,6 +135,10 @@ app.stage.on('mouseup', function(mouseData) {
             socket.emit('game-board-created', vueApp.username, vueApp.roomSelected, minefield.minePositions);
         }
     } else {
+        if (vueApp.roomSelected !== null && !minefield.gameOver){
+            // The user has clicked 'New Game' or selected a new mode.
+            socket.emit('game-board-reset', vueApp.username, vueApp.roomSelected, minefield.mode);
+        }
         vueApp.gameStarted = false;
     }
 });

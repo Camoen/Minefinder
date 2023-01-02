@@ -38,6 +38,16 @@ socketio.on('connection', (socket) => {
     }
 	});
 
+  socket.on('game-board-reset', (username, roomName, mode)=>{
+    // Get all users in the room, then reset all boards
+    let usersInRoom = Object.keys(rooms[roomName]["users"]);
+    for (var i = 0; i < usersInRoom.length; i++){ 
+      if (usersInRoom[i] != username){
+        socketio.to(usernames[usersInRoom[i]]).emit('reset-game-board', mode);
+      }
+    }
+	});
+
   socket.on('user-created', (username)=>{
 		socket.username = username;
 		usernames[username] = socket.id;
