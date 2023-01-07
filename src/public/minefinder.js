@@ -32,6 +32,7 @@ const vueApp = new Vue({
     gameStarted: false,
     loggedIn: false,
     modeSelected: null,
+    players: {},
     roomList: [],
     roomName: "",
     roomNameForm: false,
@@ -49,15 +50,19 @@ const vueApp = new Vue({
     socket.on('reset-game-board', (mode) => {
         minefield.createNewGame(mode);
         this.gameStarted = true;
-        //TODO: Instead of coloring the safe square, it may be more fair
-        // to make the first click for the player, to ensure everyone starts at the same time.
+        // TODO [Bug Fix]: Ensure synchronicity on game start
+        // Currently, there is a bug where if Player A hits "New Game" but then Player B clicks the first square
+        // the player boards will be out of sync.
     });
 
     socket.on('update-game-board', (minePositions) => {
         minefield.placeMines(minePositions);
         this.gameStarted = true;
-        //TODO: Instead of coloring the safe square, it may be more fair
-        // to make the first click for the player, to ensure everyone starts at the same time.
+    });
+
+    socket.on('update-players-in-room', (playersDict) => {
+        delete playersDict[this.username];
+        this.players = playersDict;
     });
     },
     methods: {
@@ -146,7 +151,13 @@ app.stage.on('mouseup', function(mouseData) {
 // On right click, flag a cell
 app.stage.on('rightdown', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
-    minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
+    let cellFlagged = minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
+    if (cellFlagged){
+        socket.emit('game-cell-flagged', 
+                    vueApp.username, 
+                    vueApp.roomSelected, 
+                    minefield.mines - minefield.flaggedCells);
+    }
 });
 
 // Prevent context menu on right click

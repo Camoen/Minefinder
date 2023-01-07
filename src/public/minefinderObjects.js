@@ -432,26 +432,28 @@ class Minefield {
      * Flag a cell as potentially having a mine. A flagged cell cannot be revealed 
      * until it is unflagged.
      * 
+     * Returns True if a cell is flagged, False otherwise.
+     * 
      * @param {Number} xCoord 
      * @param {Number} yCoord 
      * @returns 
      */
     flagCell(xCoord, yCoord){
         if (this.gameOver){
-            return;
+            return false;
         }        
         let cell = this.board.get(this.getCellKey(xCoord, yCoord));
         if (cell.revealed){
-            return;
+            return false;
         }
         cell.toggleFlag();
-        // TODO: Use (this.mines - this.flaggedCells) to show potential remaining mines
         if (cell.flagged){
             this.flaggedCells += 1;
         } else {
             this.flaggedCells -= 1;
         }
         this.header.mineTracker.updateRemainingMines(this.mines - this.flaggedCells);
+        return true;
     }
 
     getCellKeyString(xCoord, yCoord){
@@ -484,8 +486,8 @@ class Minefield {
             }
         } else {
             let safePosition = this.getCellKey(xCoord, yCoord);
-            this.minePositions ["safe"] = safePosition;
-            this.minePositions ["mines"] = [];
+            this.minePositions["safe"] = safePosition;
+            this.minePositions["mines"] = [];
             cellKeys.splice(cellKeys.indexOf(safePosition), 1);
             while (placedMines < this.mines){
                 let cellKeyIndex = Math.floor(Math.random() * cellKeys.length);

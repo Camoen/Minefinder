@@ -85,7 +85,11 @@
               @click="leaveRoom()"
               v-show="roomSelected !== null">Leave Room</v-btn>
             </div>
-          <div></div>
+          </div>
+          <div>
+            <div v-for="(value, key) in players" :key="key">Player <b>{{key}}</b> has <b>{{value.mines}}</b> mines remaining!</v-btn>
+            <!-- TODO: Improve logic to display win/loss, not just mines remaining. -->
+          </div>
         </div> 
       </v-app>
     </div>
