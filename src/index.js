@@ -56,8 +56,10 @@ socketio.on('connection', (socket) => {
     // Get all users in the room, then reset all boards
     let usersInRoom = getUsersInRoom(roomName);
     for (var i = 0; i < usersInRoom.length; i++){ 
-      // Update current mine count for all users
+      // Reset game status for all users
+      rooms[roomName]["users"][usersInRoom[i]] = {};
       rooms[roomName]["users"][usersInRoom[i]]["mines"] = 0;
+
       // Reset board for all users except lead player (already has reset board)
       if (usersInRoom[i] != username){
         socketio.to(usernames[usersInRoom[i]]).emit('reset-game-board', mode);
@@ -69,6 +71,14 @@ socketio.on('connection', (socket) => {
 
   socket.on('game-cell-flagged', (username, roomName, minesRemaining)=>{
     rooms[roomName]["users"][username]["mines"] = minesRemaining;
+    updateAllPlayerStatusesInRoom(roomName);
+  });
+
+  socket.on('game-finished', (username, roomName, gameWon, minesRemaining, time)=>{
+    rooms[roomName]["users"][username]["gameOver"] = true;
+    rooms[roomName]["users"][username]["gameWon"] = gameWon;
+    rooms[roomName]["users"][username]["mines"] = minesRemaining;
+    rooms[roomName]["users"][username]["time"] = time;
     updateAllPlayerStatusesInRoom(roomName);
   });
 

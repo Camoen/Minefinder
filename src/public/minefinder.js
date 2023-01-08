@@ -41,6 +41,36 @@ const vueApp = new Vue({
     usernameForm: false
     },
 
+    computed: {
+        /**
+         * Build a dictionary of all player statuses in the room.
+         * Returned dict includes the following:
+         *   1. Player Name (key)
+         *   2. Mines remaining
+         *   3. Game Status (LOST, WON, or blank to indicate in progress)
+         *   4. Time (if player's game status is in a finished state)
+         */
+        playerStatuses : function () {
+            let playerStatuses = {};
+            Object.entries(this.players).forEach(([key, value]) => {
+                playerStatuses[key] = {};
+                playerStatuses[key]["mines"] = value["mines"];
+                if ("gameOver" in value && value["gameOver"] == true){
+                    playerStatuses[key]["gameOver"] = true;
+                    playerStatuses[key]["time"] = value["time"];
+                    if (value["gameWon"] === true){
+                        playerStatuses[key]["gameWon"] = "WON";
+                    } else {
+                        playerStatuses[key]["gameWon"] = "LOST";
+                    }
+                } else {
+                    playerStatuses[key]["gameOver"] = false;
+                }
+            });
+            return playerStatuses;
+        }
+    },
+
     created() {
     socket.on('update-room-list', (rooms) => {
         console.log("this has been called with ", rooms);
@@ -140,7 +170,15 @@ app.stage.on('mouseup', function(mouseData) {
             socket.emit('game-board-created', vueApp.username, vueApp.roomSelected, minefield.minePositions);
         }
     } else {
-        if (vueApp.roomSelected !== null && !minefield.gameOver){
+        if (vueApp.roomSelected !== null && minefield.gameOver){
+            // The user is in a room and has either lost or won.
+            socket.emit('game-finished',
+                        vueApp.username,
+                        vueApp.roomSelected, 
+                        minefield.gameWon, 
+                        minefield.minesRemaining,
+                        minefield.header.timer.gameTimerText.text);
+        } else if (vueApp.roomSelected !== null && !minefield.gameOver){
             // The user has clicked 'New Game' or selected a new mode.
             socket.emit('game-board-reset', vueApp.username, vueApp.roomSelected, minefield.mode);
         }

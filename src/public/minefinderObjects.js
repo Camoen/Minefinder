@@ -307,6 +307,7 @@ class Minefield {
         this.cellSize = cellSize;
         this.currentMode = null;
         this.mode = "beginner"
+        this.gameWon = false;
         this.headerHeight = cellSize * 2.5;
 
         // Game Timer
@@ -418,6 +419,7 @@ class Minefield {
 
 
     endGame(win){
+        this.gameWon = win;
         this.gameTicker.stop();
         this.revealMines(win);
         if (win === true){
@@ -622,6 +624,7 @@ class Minefield {
      */
     revealMines(win){
         let cellKeys = Array.from(this.board.keys());
+        let minesRemaining = 0;
         for (const cellKey of cellKeys){
             let cell = this.board.get(cellKey);
             if (win){
@@ -632,12 +635,14 @@ class Minefield {
             } else {
                 if (cell.value == "M" && !cell.flagged) {
                     cell.updateCell("X");
+                    minesRemaining += 1;
                 } else if (cell.value != "M" && cell.flagged) {
                     // Indicate that a cell was falsely flagged by the player
                     cell.updateCell("FALSE_FLAG");
                 }
             }
         }
+        this.minesRemaining = minesRemaining;
         this.gameOver = true;
     }
 
