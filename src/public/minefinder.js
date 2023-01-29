@@ -37,6 +37,7 @@ const vueApp = new Vue({
     roomName: "",
     roomNameForm: false,
     roomSelected: null,
+    userIsLeader: false,
     username: null,
     usernameForm: false
     },
@@ -49,6 +50,7 @@ const vueApp = new Vue({
          *   2. Mines remaining
          *   3. Game Status (LOST, WON, or blank to indicate in progress)
          *   4. Time (if player's game status is in a finished state)
+         *   5. Whether or not the player is the room leader
          */
         playerStatuses : function () {
             let playerStatuses = {};
@@ -66,7 +68,13 @@ const vueApp = new Vue({
                 } else {
                     playerStatuses[key]["gameOver"] = false;
                 }
+                if ("leader" in value && value["leader"] == true){
+                    playerStatuses[key]["leader"] = true;
+                } else {
+                    playerStatuses[key]["leader"] = false;
+                }
             });
+            console.log("playserStatus: ", playerStatuses);
             return playerStatuses;
         }
     },
@@ -79,10 +87,11 @@ const vueApp = new Vue({
 
     socket.on('reset-game-board', (mode) => {
         minefield.createNewGame(mode);
-        this.gameStarted = true;
-        // TODO [Bug Fix]: Ensure synchronicity on game start
-        // Currently, there is a bug where if Player A hits "New Game" but then Player B clicks the first square
-        // the player boards will be out of sync.
+        this.gameStarted = false;
+    });
+
+    socket.on('set-user-as-leader', () => {
+        this.userIsLeader = true;
     });
 
     socket.on('update-game-board', (minePositions) => {
@@ -91,6 +100,8 @@ const vueApp = new Vue({
     });
 
     socket.on('update-players-in-room', (playersDict) => {
+        let playerName = this.username + " (you)";
+        playersDict[playerName] = playersDict[this.username];
         delete playersDict[this.username];
         this.players = playersDict;
     });
@@ -98,6 +109,8 @@ const vueApp = new Vue({
     methods: {
     createRoom() {
         socket.emit('room-created', this.roomName);
+        // Flag current player as leader
+        this.userIsLeader = true;
         // Automatically join the room upon creation.
         this.selectRoom(this.roomName);
         // TODO [optional]: Don't allow a user to create a custom room, and instead manage room naming automatically
@@ -108,7 +121,7 @@ const vueApp = new Vue({
         socket.emit('user-created', this.username);
         console.log(this);
         // TODO: Allow identical usernames and attach a UUID, otherwise prevent duplicate usernames
-            },
+    },
 
     deselectGameMode(){
         this.modeSelected = null;
@@ -131,12 +144,12 @@ const vueApp = new Vue({
 
     leaveRoom(){
         socket.emit('user-left-room', this.roomSelected, this.username);
+        this.userIsLeader = false;
         this.roomSelected = null;
         minefield.createNewGame();
     },
 
     logOut(){
-        // TODO: Remove user from current room, if applicable
         this.loggedIn = false;
         socket.emit('user-deleted', this.username);
     },
@@ -162,39 +175,52 @@ gameDiv.appendChild(app.view);
 // On left click, reveal cells on game board
 app.stage.on('mouseup', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
-    let gameStarted = minefield.routeClick(mouseData.data.global.x, mouseData.data.global.y);
-    // If lead player has started the game, emit minefield positions to all players in the room.
-    if (gameStarted){
-        if (vueApp.roomSelected !== null && !vueApp.gameStarted){
-            vueApp.gameStarted = true;
-            socket.emit('game-board-created', vueApp.username, vueApp.roomSelected, minefield.minePositions);
+    // User may start or reset a game if (1) they're in individual mode or (2) they're the room leader
+    let userMayControlGame = false;
+    if (vueApp.roomSelected == null || vueApp.userIsLeader == true){
+        userMayControlGame = true;
+    }
+    if (!userMayControlGame && !minefield.gameOver){
+        minefield.header.newGameButtonText.text = ":O";
+    }
+    if (userMayControlGame || vueApp.gameStarted){
+        let gameStarted = minefield.routeClick(mouseData.data.global.x, mouseData.data.global.y, userMayControlGame);
+        // If lead player has started the game, emit minefield positions to all players in the room.
+        if (gameStarted){
+            if (vueApp.roomSelected !== null && !vueApp.gameStarted){
+                socket.emit('game-board-created', vueApp.username, vueApp.roomSelected, minefield.minePositions);
+            }
+            vueApp.gameStarted = true; // Must start the game also for 'individual' players
+        } else {
+            if (vueApp.roomSelected !== null && minefield.gameOver){
+                // The user is in a room and has either lost or won, emit their status to all other players.
+                socket.emit('game-finished',
+                            vueApp.username,
+                            vueApp.roomSelected, 
+                            minefield.gameWon, 
+                            minefield.minesRemaining,
+                            minefield.header.timer.gameTimerText.text);
+                // TODO: Determine a winner (or top performer) via following criteria: LEAST MINES REMAINING, then SHORTEST TIME
+            } else if (vueApp.roomSelected !== null && !minefield.gameOver){
+                // The leader has clicked 'New Game' or selected a new mode.
+                socket.emit('game-board-reset', vueApp.username, vueApp.roomSelected, minefield.mode);
+            }
+            vueApp.gameStarted = false;
         }
-    } else {
-        if (vueApp.roomSelected !== null && minefield.gameOver){
-            // The user is in a room and has either lost or won.
-            socket.emit('game-finished',
-                        vueApp.username,
-                        vueApp.roomSelected, 
-                        minefield.gameWon, 
-                        minefield.minesRemaining,
-                        minefield.header.timer.gameTimerText.text);
-        } else if (vueApp.roomSelected !== null && !minefield.gameOver){
-            // The user has clicked 'New Game' or selected a new mode.
-            socket.emit('game-board-reset', vueApp.username, vueApp.roomSelected, minefield.mode);
-        }
-        vueApp.gameStarted = false;
     }
 });
 
 // On right click, flag a cell
 app.stage.on('rightdown', function(mouseData) {
-    console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
-    let cellFlagged = minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
-    if (cellFlagged){
-        socket.emit('game-cell-flagged', 
-                    vueApp.username, 
-                    vueApp.roomSelected, 
-                    minefield.mines - minefield.flaggedCells);
+    if (vueApp.gameStarted){
+        console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
+        let cellFlagged = minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
+        if (vueApp.roomSelected !== null && cellFlagged){
+            socket.emit('game-cell-flagged', 
+                        vueApp.username, 
+                        vueApp.roomSelected, 
+                        minefield.mines - minefield.flaggedCells);
+        }
     }
 });
 

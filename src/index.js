@@ -37,6 +37,7 @@ socketio.on('connection', (socket) => {
   socket.on('room-created', (roomName)=>{
 		rooms[roomName] = {};
     rooms[roomName]["users"] = {};
+    rooms[roomName]["leader"] = null;
     socketio.emit('update-room-list',  Object.keys(rooms));
 		console.log("Rooms: ", rooms);
 	});
@@ -57,9 +58,11 @@ socketio.on('connection', (socket) => {
     // Get all users in the room, then reset all boards
     let usersInRoom = getUsersInRoom(roomName);
     for (var i = 0; i < usersInRoom.length; i++){ 
-      // Reset game status for all users
+      // Reset game status for all users, but maintain leader status
+      let userLeaderStatus = rooms[roomName]["users"][usersInRoom[i]]["leader"];
       rooms[roomName]["users"][usersInRoom[i]] = {};
       rooms[roomName]["users"][usersInRoom[i]]["mines"] = 0;
+      rooms[roomName]["users"][usersInRoom[i]]["leader"] = userLeaderStatus;
 
       // Reset board for all users except lead player (already has reset board)
       if (usersInRoom[i] != username){
@@ -103,6 +106,13 @@ socketio.on('connection', (socket) => {
     // rooms[roomName]["users"] = dictionary that holds user state dictionaries
     // rooms[roomName]["users"][username] = dictionary that maps Username -> User Details
 		rooms[roomName]["users"][username] = {};
+    // If this is the only player in the room, set the player as leader.
+    if (rooms[roomName]["leader"] == null){
+      rooms[roomName]["leader"] = username;
+      rooms[roomName]["users"][username]["leader"] = true;
+    } else {
+      rooms[roomName]["users"][username]["leader"] = false;
+    }
 		console.log("Rooms: ", rooms);
     updateAllPlayerStatusesInRoom(roomName);
 	});
@@ -114,7 +124,14 @@ socketio.on('connection', (socket) => {
       delete rooms[roomName];
       socketio.emit('update-room-list',  Object.keys(rooms));
     } else {
-      // Othwerise, only update available rooms for the user that has left the room
+      // If leader has left, select a new leader.
+      if (rooms[roomName]["leader"] == username){
+        let usersInRoom = getUsersInRoom(roomName);
+        rooms[roomName]["leader"] = usersInRoom[0];
+        rooms[roomName]["users"][usersInRoom[0]]["leader"] = true;
+        socketio.to(usernames[usersInRoom[0]]).emit('set-user-as-leader');
+      }
+      // Otherwise, only update available rooms for the user that has left the room
       socketio.to(socket.id).emit('update-room-list',  Object.keys(rooms));
       // Also update room status for remaining players in the room.
       updateAllPlayerStatusesInRoom(roomName);

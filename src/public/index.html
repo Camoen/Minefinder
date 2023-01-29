@@ -89,10 +89,10 @@
           <div id="roomScoreboard" v-show="roomSelected !== null">
             <div v-for="(value, key) in playerStatuses" :key="key">
               <div v-show="value.gameOver === true">
-                Player <b>{{key}}</b> has <b>{{value.gameWon}}</b> in <b>{{value.time}} seconds</b> with <b>{{value.mines}}</b> mines remaining!
+                <span v-show="value.leader === true">👑</span> Player <b>{{key}}</b> has <b>{{value.gameWon}}</b> in <b>{{value.time}} seconds</b> with <b>{{value.mines}}</b> mines remaining!
               </div>
               <div v-show="value.gameOver === false">
-                Player <b>{{key}}</b> has <b>{{value.mines}}</b> mines remaining!
+                <span v-show="value.leader === true">👑</span> Player <b>{{key}}</b> has <b>{{value.mines}}</b> mines remaining!
               </div>
             </div>
             <!-- TODO: Improve logic to display win/loss, not just mines remaining. -->

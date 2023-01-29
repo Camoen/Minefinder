@@ -653,13 +653,15 @@ class Minefield {
      * @param {*} xCoord 
      * @param {*} yCoord 
      */
-    routeClick(xCoord, yCoord){
+    routeClick(xCoord, yCoord, userMayControlGame){
         if (yCoord < (this.headerHeight + this.border * 2)){
-            let mode = this.header.getModeOption(xCoord, yCoord);
-            if (mode != null){
-                this.mode = mode
+            if (userMayControlGame){
+                let mode = this.header.getModeOption(xCoord, yCoord);
+                if (mode != null){
+                    this.mode = mode;
+                }
+                this.createNewGame();
             }
-            this.createNewGame();
         } else {
             this.revealCellsFromCoordinates(xCoord, yCoord);
         }
