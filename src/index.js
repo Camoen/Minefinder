@@ -20,11 +20,60 @@ function getUsersInRoom(roomName){
   return Object.keys(rooms[roomName]["users"]);
 }
 
+function setWinnerInRoom(roomName){
+  let usersInRoom = getUsersInRoom(roomName);
+  let winner = null;
+  let winnerMines = Number.POSITIVE_INFINITY;
+  let winnerTime = Number.POSITIVE_INFINITY;
+  let tiedWinners = new Set();
+  let losers = new Set();
+
+  for (var i = 0; i < usersInRoom.length; i++){ 
+    let curUser = usersInRoom[i];
+    let curUserVal = rooms[roomName]["users"][usersInRoom[i]];
+    if (curUserVal["mines"] == winnerMines && curUserVal["time"] == winnerTime){
+      tiedWinners.add(curUser);
+    } else if (curUserVal["mines"] < winnerMines || (curUserVal["mines"] == winnerMines && curUserVal["time"] < winnerTime)){
+      // If a user (1) has less mines remaining or (2) has the same number of mines but took less time, they win.
+      losers = new Set([...losers, ...tiedWinners]);
+      tiedWinners.clear();
+      winner = curUser;
+      winnerMines = curUserVal["mines"];
+      winnerTime = curUserVal["time"];
+      tiedWinners.add(curUser);
+    } else {
+      losers.add(curUser);
+    }
+  }
+
+  tiedWinners.forEach((user) => {
+    rooms[roomName]["users"][user]["overallWinner"] = true;
+  })
+  losers.forEach((user) => {
+    rooms[roomName]["users"][user]["overallWinner"] = false;
+  })
+
+  for (var j = 0; j < usersInRoom.length; j++){ 
+    socketio.to(usernames[usersInRoom[j]]).emit('update-players-in-room', rooms[roomName]["users"]);
+  }
+}
+
 function updateAllPlayerStatusesInRoom(roomName){
   let usersInRoom = getUsersInRoom(roomName);
+  let finishedGames = 0;
   for (var i = 0; i < usersInRoom.length; i++){ 
     socketio.to(usernames[usersInRoom[i]]).emit('update-players-in-room', rooms[roomName]["users"]);
+
+    // Track if each user has finished the game
+    let curUser = rooms[roomName]["users"][usersInRoom[i]];
+    if ("gameOver" in curUser && curUser["gameOver"] == true){
+      finishedGames += 1;
+    }
   }
+  // If the game is over, decide the winner
+  if (finishedGames == usersInRoom.length){
+    setWinnerInRoom(roomName);
+  } 
 }
 
 socketio.on('connection', (socket) => {

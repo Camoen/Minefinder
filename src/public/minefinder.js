@@ -60,10 +60,18 @@ const vueApp = new Vue({
                 if ("gameOver" in value && value["gameOver"] == true){
                     playerStatuses[key]["gameOver"] = true;
                     playerStatuses[key]["time"] = value["time"];
-                    if (value["gameWon"] === true){
-                        playerStatuses[key]["gameWon"] = "WON";
+                    if ("overallWinner" in value){
+                        if (value["overallWinner"] == true){
+                            playerStatuses[key]["gameWon"] = "WON";
+                        } else {
+                            playerStatuses[key]["gameWon"] = "LOST";
+                        }
                     } else {
-                        playerStatuses[key]["gameWon"] = "LOST";
+                        if (value["gameWon"] === true){
+                            playerStatuses[key]["gameWon"] = "WON";
+                        } else {
+                            playerStatuses[key]["gameWon"] = "LOST";
+                        }
                     }
                 } else {
                     playerStatuses[key]["gameOver"] = false;
@@ -136,6 +144,7 @@ const vueApp = new Vue({
     },
 
     selectRoom(room){
+        // TODO: If someone joins a room after a game is already in progress, it can lead to unintended behaviors.
         this.roomSelected = room;
         socket.emit('user-joined-room', this.roomSelected, this.username);
         console.log(this.username, 'joined ', this.roomSelected);

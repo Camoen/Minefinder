@@ -24,7 +24,7 @@
           </div>
           <div id="roomSelection" v-show="modeSelected === this.gameModes[1] && roomSelected === null">
             <div v-if="loggedIn" v-cloak>
-              <h3 style="text-align:center">Hello, {{username}}!<br>Select or Create a Room<br>(TODO)</h3>
+              <h3 style="text-align:center">Hello, {{username}}!<br>Select or Create a Room<br></h3>
               <v-btn raised class="no-uppercase" v-for="room in roomList" :key="room.id" @click="selectRoom(room)">{{room}}</v-btn>
               <v-form v-model="roomNameForm" @submit.prevent="createRoom">
                 <v-text-field 
@@ -95,7 +95,7 @@
                 <span v-show="value.leader === true">👑</span> Player <b>{{key}}</b> has <b>{{value.mines}}</b> mines remaining!
               </div>
             </div>
-            <!-- TODO: Improve logic to display win/loss, not just mines remaining. -->
+            <!-- TODO: Improve display of scoreboard and win/loss. -->
           </div>
         </div> 
       </v-app>
