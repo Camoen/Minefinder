@@ -12,16 +12,6 @@
     <div id="app">
       <v-app>
         <div class="flex-container">
-          <div>
-            <div v-if="modeSelected !== null" v-cloak>
-              <h3>{{modeSelected}}</h3>
-              <v-btn raised @click="deselectGameMode()">Back to Menu</v-btn>
-            </div>
-            <div v-else v-cloak>
-              <h3 style="text-align:center">Select Mode</h3>
-              <v-btn raised v-for="mode in gameModes" :key="mode.id" @click="selectGameMode(mode)">{{mode}}</v-btn>
-            </div>
-          </div>
           <div id="roomSelection" v-show="modeSelected === this.gameModes[1] && roomSelected === null">
             <div v-if="loggedIn" v-cloak>
               <h3 style="text-align:center">Hello, {{username}}!<br>Select or Create a Room<br></h3>
@@ -87,15 +77,32 @@
             </div>
           </div>
           <div id="roomScoreboard" v-show="roomSelected !== null">
+            <h3 style="text-align:center">Scores</h3>
             <div v-for="(value, key) in playerStatuses" :key="key">
               <div v-show="value.gameOver === true">
-                <span v-show="value.leader === true">👑</span> Player <b>{{key}}</b> has <b>{{value.gameWon}}</b> in <b>{{value.time}} seconds</b> with <b>{{value.mines}}</b> mines remaining!
+                <div v-show="value.gameWon === 'WON'" style="color:green">
+                  <span v-show="value.leader === true">👑</span><b>{{key}}</b> has <b>WON</b>: <b>{{value.mines}}</b> mines remaining in <b>{{value.time}}</b> seconds!
+                </div>
+                <div v-show="value.gameWon === 'LOST'" style="color:red">
+                  <span v-show="value.leader === true">👑</span><b>{{key}}</b> has <b>LOST</b>: <b>{{value.mines}}</b> mines remaining in <b>{{value.time}}</b> seconds!
+                </div>
               </div>
               <div v-show="value.gameOver === false">
-                <span v-show="value.leader === true">👑</span> Player <b>{{key}}</b> has <b>{{value.mines}}</b> mines remaining!
+                <span v-show="value.leader === true">👑</span><b>{{key}}</b>: <b>{{value.mines}}</b> mines remaining!
               </div>
             </div>
             <!-- TODO: Improve display of scoreboard and win/loss. -->
+          </div>
+          <div style="text-align:center">
+            <br>
+            <div v-if="modeSelected !== null" v-cloak>
+              <h3>{{modeSelected}}</h3>
+              <v-btn raised @click="deselectGameMode()">Back to Menu</v-btn>
+            </div>
+            <div v-else v-cloak>
+              <h3 style="text-align:center">Select Mode</h3>
+              <v-btn raised v-for="mode in gameModes" :key="mode.id" @click="selectGameMode(mode)">{{mode}}</v-btn>
+            </div>
           </div>
         </div> 
       </v-app>

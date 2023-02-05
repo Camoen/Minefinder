@@ -17,6 +17,10 @@ body {
   text-transform: unset !important;
 }
 
+#gameContainer, #roomScoreboard {
+  margin: auto;
+}
+
 #game, #roomSelection {
   margin: auto;
 }
