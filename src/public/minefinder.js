@@ -82,7 +82,7 @@ const vueApp = new Vue({
                     playerStatuses[key]["leader"] = false;
                 }
             });
-            console.log("playserStatus: ", playerStatuses);
+            console.log("playerStatuses: ", playerStatuses);
             return playerStatuses;
         }
     },
@@ -148,14 +148,12 @@ const vueApp = new Vue({
         this.roomSelected = room;
         socket.emit('user-joined-room', this.roomSelected, this.username);
         console.log(this.username, 'joined ', this.roomSelected);
-        minefield.createNewGame();
     },
 
     leaveRoom(){
         socket.emit('user-left-room', this.roomSelected, this.username);
         this.userIsLeader = false;
         this.roomSelected = null;
-        minefield.createNewGame();
     },
 
     logOut(){

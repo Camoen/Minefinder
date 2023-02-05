@@ -101,6 +101,7 @@ socketio.on('connection', (socket) => {
       }
     }
     updateAllPlayerStatusesInRoom(roomName);
+    rooms[roomName]["gameStarted"] = true;
 	});
 
   socket.on('game-board-reset', (username, roomName, mode)=>{
@@ -119,6 +120,7 @@ socketio.on('connection', (socket) => {
       }
       // TODO [Optional]: Can be more efficient by resetting all player mine counts to 0 on client side when game is reset
       updateAllPlayerStatusesInRoom(roomName);
+      rooms[roomName]["gameStarted"] = false;
     }
 	});
 
@@ -163,6 +165,11 @@ socketio.on('connection', (socket) => {
       rooms[roomName]["users"][username]["leader"] = false;
     }
 		console.log("Rooms: ", rooms);
+    // Players joining an in progress game must wait until the next round to join in.
+    if (rooms[roomName]["gameStarted"] == true){
+      rooms[roomName]["users"][username]["gameOver"] = true;
+      rooms[roomName]["users"][username]["gameOver"] = false;
+    }
     updateAllPlayerStatusesInRoom(roomName);
 	});
 
