@@ -36,13 +36,13 @@ class Cell {
             .drawRect(0, 0, this.cellSize, this.cellSize)
             .endFill();
     
-        square.interactive = true;
-        square.on('mouseenter', function() {
+        square.eventMode = 'static';
+        square.onpointerenter = function() {
             square.tint = 0x880808;
-        })
-        square.on('mouseleave', function() {
+        }
+        square.onpointerleave = function() {
             square.tint = 0xFFFFFF;
-        })
+        }
         this.square = square;
     }
 
@@ -218,13 +218,13 @@ class Header {
         this.newGameButtonText.x = this.newGameButton.width/2;
         this.newGameButtonText.y = this.newGameButton.height/2;
 
-        this.newGameButton.interactive = true;
-        this.newGameButton.on('mouseenter', function() {
+        this.newGameButton.eventMode = 'static';
+        this.newGameButton.onpointerenter = function() {
             this.tint = 0x90EE90;
-        })
-        this.newGameButton.on('mouseleave', function() {
+        }
+        this.newGameButton.onpointerleave = function() {
             this.tint = 0xFFFFFF;
-        })
+        }
 
         this.headerContainer.addChild(this.newGameButton);
         this.newGameButton.addChild(this.newGameButtonText);
@@ -262,21 +262,21 @@ class Header {
         modeButtonText.x = width/2;
         modeButtonText.y = height/2;
 
-        modeButton.interactive = true;
-        modeButton.on('mouseenter', function() {
+        modeButton.eventMode = 'static';
+        modeButton.onpointerenter = function() {
             this.tint = 0x90EE90;
-        })
-        modeButton.on('mouseleave', function() {
+        }
+        modeButton.onpointerleave = function() {
             this.tint = 0xFFFFFF;
-        })
+        }
         // TODO: Ensure that only one mode is lit up at a time (currently, clicking Beginner and then Expert will result in both modes being colored yellow)
-        modeButton.on('mouseup', function() {
+        modeButton.onmouseup = function() {
             modeButton.clear();
             modeButton.beginFill(0xFFA500)
             .lineStyle(1, 0x111111, 0.35)
             .drawRect(0, 0, width, height)
             .endFill();
-        })
+        }
 
         modeButton.addChild(modeButtonText);
         return modeButton;
@@ -449,6 +449,7 @@ class Minefield {
             return false;
         }
         cell.toggleFlag();
+        console.log("toggled flag to ", cell.flagged)
         if (cell.flagged){
             this.flaggedCells += 1;
         } else {
