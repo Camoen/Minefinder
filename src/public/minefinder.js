@@ -180,7 +180,7 @@ const gameDiv = document.querySelector('#game');
 gameDiv.appendChild(app.view);
 
 // On left click, reveal cells on game board
-app.stage.onmouseup = function(mouseData) {
+app.stage.on('mouseup', function(mouseData) {
     console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
     // User may start or reset a game if (1) they're in individual mode or (2) they're the room leader
     let userMayControlGame = false;
@@ -215,14 +215,13 @@ app.stage.onmouseup = function(mouseData) {
             vueApp.gameStarted = false;
         }
     }
-};
+});
 
 // On right click, flag a cell
-app.stage.onrightdown = function(mouseData) {
+app.stage.on('rightdown', function(mouseData) {
     if (vueApp.gameStarted){
         console.log('X', mouseData.data.global.x, 'Y', mouseData.data.global.y);
         let cellFlagged = minefield.flagCell(mouseData.data.global.x, mouseData.data.global.y);
-        console.log("cell flagged: ", cellFlagged);
         if (vueApp.roomSelected !== null && cellFlagged){
             socket.emit('game-cell-flagged', 
                         vueApp.username, 
@@ -230,7 +229,7 @@ app.stage.onrightdown = function(mouseData) {
                         minefield.mines - minefield.flaggedCells);
         }
     }
-};
+});
 
 // Prevent context menu on right click
 app.view.addEventListener('contextmenu', (e) => {
