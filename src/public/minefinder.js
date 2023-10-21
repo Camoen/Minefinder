@@ -1,5 +1,6 @@
 // Set up game objects
 const app = new PIXI.Application();
+app.stage.eventMode = 'static';
 const Graphics = PIXI.Graphics;
 const cellSize = 40;
 let border = 5;

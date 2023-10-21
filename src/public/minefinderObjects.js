@@ -36,7 +36,7 @@ class Cell {
             .drawRect(0, 0, this.cellSize, this.cellSize)
             .endFill();
     
-        square.interactive = true;
+        square.eventMode = 'static';
         square.on('mouseenter', function() {
             square.tint = 0x880808;
         })
@@ -218,7 +218,7 @@ class Header {
         this.newGameButtonText.x = this.newGameButton.width/2;
         this.newGameButtonText.y = this.newGameButton.height/2;
 
-        this.newGameButton.interactive = true;
+        this.newGameButton.eventMode = 'static';
         this.newGameButton.on('mouseenter', function() {
             this.tint = 0x90EE90;
         })
@@ -262,7 +262,7 @@ class Header {
         modeButtonText.x = width/2;
         modeButtonText.y = height/2;
 
-        modeButton.interactive = true;
+        modeButton.eventMode = 'static';
         modeButton.on('mouseenter', function() {
             this.tint = 0x90EE90;
         })
@@ -385,7 +385,7 @@ class Minefield {
         }
         this.boardContainer.x = border;
         this.boardContainer.y = border + this.headerHeight + border;
-        this.app.stage.addChild(this.boardContainer);  
+        this.app.stage.addChild(this.boardContainer);
     }
 
     /**
